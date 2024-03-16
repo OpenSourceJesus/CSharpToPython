@@ -9,8 +9,6 @@ namespace CSharpToPython {
             var engineWrapper = new EngineWrapper();
             var engine = engineWrapper.Engine;
             var parsedAst = ParsePythonSource(engine, "clr.Reference[System.Int32](p)").Body;
-
-
             var result = ConvertAndRunCode(engineWrapper, "int GetInt() { return 1.0; }");
         }
 
@@ -24,16 +22,16 @@ namespace CSharpToPython {
                     Microsoft.Scripting.ErrorSink.Default);
             var parser = IronPython.Compiler.Parser.CreateParser(
                 compilerCtxt,
-                (IronPython.PythonOptions)langContext.Options
+                (IronPython.Runtime.PythonOptions)langContext.Options
             );
             return parser.ParseFile(false);
         }
-
 
         public static object ConvertAndRunExpression(EngineWrapper engine, string csharpCode) {
             var csharpAst = Microsoft.CodeAnalysis.CSharp.SyntaxFactory.ParseExpression(csharpCode);
             return ConvertAndRunCode(engine, csharpAst);
         }
+        
         public static object ConvertAndRunStatements(
                 EngineWrapper engine,
                 string csharpCode,
@@ -46,6 +44,7 @@ namespace CSharpToPython {
             var csharpAst = Microsoft.CodeAnalysis.CSharp.SyntaxFactory.ParseSyntaxTree(csharpCode).GetRoot();
             return ConvertAndRunCode(engine, csharpAst);
         }
+
         private static object ConvertAndRunCode(
                 EngineWrapper engine,
                 Microsoft.CodeAnalysis.SyntaxNode csharpAstNode,
@@ -55,7 +54,6 @@ namespace CSharpToPython {
             var convertedCode = PythonAstPrinter.PrintPythonAst(pythonAst);
             var extraImports = requiredImports is null ? "" : string.Join("\r\n", requiredImports.Select(i => "import " + i));
             convertedCode = "import clr\r\n" + extraImports + "\r\n" + convertedCode;
-
             if (pythonAst is PyAst.SuiteStatement suiteStmt) {
                 var pythonStatements = suiteStmt.Statements
                     .Where(s => !(s is PyAst.FromImportStatement || s is PyAst.ImportStatement)).ToList();
@@ -64,11 +62,13 @@ namespace CSharpToPython {
                     convertedCode += $"\r\n{funcDef.Name}()";
                 }
 
-                if (pythonStatements.Count >= 1 && pythonStatements.All(s => s is PyAst.ClassDefinition)) {
-                    var lastClassDef = (PyAst.ClassDefinition)pythonStatements.Last();
-                    convertedCode += $"\r\n{lastClassDef.Name}()";
-                }
+                // if (pythonStatements.Count >= 1 && pythonStatements.All(s => s is PyAst.ClassDefinition)) {
+                //     var lastClassDef = (PyAst.ClassDefinition)pythonStatements.Last();
+                //     convertedCode += $"\r\n{lastClassDef.Name}()";
+                // }
             }
+            UnityToUnreal.pythonFileContents = convertedCode;
+            UnityToBevy.pythonFileContents = convertedCode;
             var scope = engine.Engine.CreateScope();
             var source = engine.Engine.CreateScriptSourceFromString(convertedCode, Microsoft.Scripting.SourceCodeKind.AutoDetect);
             return source.Execute(scope);
@@ -78,10 +78,12 @@ namespace CSharpToPython {
             var csharpAst = Microsoft.CodeAnalysis.CSharp.SyntaxFactory.ParseExpression(csharpCode);
             return ConvertCsharpAST(csharpAst);
         }
+
         public static string ConvertCode(string csharpCode) {
             var csharpAst = Microsoft.CodeAnalysis.CSharp.SyntaxFactory.ParseSyntaxTree(csharpCode).GetRoot();
             return ConvertCsharpAST(csharpAst);
         }
+
         private static string ConvertCsharpAST(Microsoft.CodeAnalysis.SyntaxNode csharpAst) {
             var rewritten = MultiLineLambdaRewriter.RewriteMultiLineLambdas(csharpAst);
             var pythonAst = new CSharpToPythonConvert().Visit(rewritten);

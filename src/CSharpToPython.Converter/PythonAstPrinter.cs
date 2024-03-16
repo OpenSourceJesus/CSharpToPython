@@ -80,7 +80,16 @@ namespace CSharpToPython {
             return $"({Visit(node.Left)} {operatorText} {Visit(node.Right)})";
         }
         public string Visit(PyAst.CallExpression node) {
-            return $"{Visit(node.Target)}({string.Join(", ", node.Args.Select(a => Visit(a))) })";
+            string output = $"{Visit(node.Target)}({string.Join(", ", node.Args.Select(a => Visit(a))) })";
+            PyAst.MemberExpression member = node.Target as PyAst.MemberExpression;
+            if (member != null)
+            {
+                if (Translator.instance.GetType().Name == "UnityToUnreal")
+                    output = output.Replace("Add", "push_back");
+                else if (Translator.instance.GetType().Name == "UnityToBevy")
+                    output = output.Replace("Console.Write", "print");
+            }
+            return output;
         }
         public string Visit(PyAst.ConditionalExpression node) {
             return $"({Visit(node.TrueExpression)} if {Visit(node.Test)} else {Visit(node.FalseExpression)})";
@@ -242,6 +251,8 @@ namespace CSharpToPython {
             return string.Join(".", names);
         }
         public void Visit(PyAst.FunctionDefinition node) {
+            if (node.Name == "__init__" && Translator.instance.GetType().Name == "UnityToUnreal")
+                return;
             WriteDecorators(node.Decorators ?? Array.Empty<PyAst.Expression>());
             AppendLineWithIndentation($"def {node.Name}({ string.Join(", ", node.Parameters.Select(p => Visit(p)).ToArray()) }):");
             using (new Indenter(this)) {

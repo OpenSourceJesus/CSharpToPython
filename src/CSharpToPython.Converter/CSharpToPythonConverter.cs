@@ -257,7 +257,10 @@ namespace CSharpToPython {
             } else {
                 convertedTypeArgsList = convertedTypeArgs.Single();
             }
-            return new PyAst.IndexExpression(new PyAst.NameExpression(node.Identifier.Text), convertedTypeArgsList);
+            string identifier = node.Identifier.Text;
+            if (Translator.instance.GetType().Name == "UnityToBevy" && identifier == "List")
+                identifier = "Vec";
+            return new PyAst.IndexExpression(new PyAst.NameExpression(identifier), convertedTypeArgsList);
         }
         public override PyAst.Node VisitNullableType(NullableTypeSyntax node) {
             var separatedTypeList = SyntaxFactory.SingletonSeparatedList(node.ElementType);
@@ -731,6 +734,7 @@ namespace CSharpToPython {
                 if (member is FieldDeclarationSyntax field
                         && !field.Modifiers.Any(CSharpSyntaxKind.StaticKeyword)) {
                     foreach (var variable in field.Declaration.Variables) {
+                        Console.WriteLine("WOW" + variable.Initializer);
                         instanceFields.Add(new FieldInfo {
                             IdentifierName = variable.Identifier.Text,
                             Initializer = variable.Initializer
