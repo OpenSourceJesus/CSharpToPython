@@ -85,9 +85,15 @@ namespace CSharpToPython {
             if (member != null)
             {
                 if (Translator.instance.GetType().Name == "UnityToUnreal")
+                {
                     output = output.Replace("Add", "push_back");
+                    output = output.Replace("Console.WriteLine", "print");
+                }
                 else if (Translator.instance.GetType().Name == "UnityToBevy")
-                    output = output.Replace("Console.Write", "print");
+                {
+                    output = output.Replace("Console.WriteLine", "println");
+                }
+                output = output.Replace("Console.Write", "print");
             }
             return output;
         }
