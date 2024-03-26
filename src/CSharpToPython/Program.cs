@@ -41,6 +41,39 @@ namespace CSharpToPython {
             return ConvertAndRunCode(engine, csharpAst, requiredImports);
         }
         public static object ConvertAndRunCode(EngineWrapper engine, string csharpCode) {
+            string[] lines = csharpCode.Split('\n');
+            List<string> outputLines = new List<string>();
+            foreach (string line in lines)
+            {
+                string outputLine = line;
+                if (line.Contains("using UnityEngine"))
+                    continue;
+                else
+                {
+                    outputLine = outputLine.Replace(" : MonoBehaviour", ""); // TODO: Make this work with interfaces
+                    outputLine = outputLine.Replace("Time.time", "UGameplayStatics.GetRealTimeSeconds(UWorld.GetWorld())");
+                    outputLine = outputLine.Replace("Mathf.Sin", "FMath.Sin");
+                    outputLine = outputLine.Replace("Vector2.right", "FVector.RightVector");
+                    if (outputLine.Contains("transform"))
+                    {
+                        outputLine = outputLine.Replace("transform", "");
+                        int indexOfPosition = outputLine.IndexOf(".position");
+                        if (indexOfPosition != -1)
+                        {
+                            int indexOfEquals = outputLine.IndexOf('=', indexOfPosition);
+                            if (indexOfEquals != -1)
+                            {
+                                int indexofSemicolon = outputLine.IndexOf(';', indexOfEquals);
+                                string position = outputLine.SubstringStartEnd(indexOfEquals + 1, indexofSemicolon);
+                                outputLine = "SetActorLocation(" + position + ");";
+                            }
+                        }
+                    }
+                }
+                outputLines.Add(outputLine);
+            }
+            csharpCode = string.Join('\n', outputLines);
+            Console.WriteLine("WOW" + csharpCode);
             var csharpAst = Microsoft.CodeAnalysis.CSharp.SyntaxFactory.ParseSyntaxTree(csharpCode).GetRoot();
             return ConvertAndRunCode(engine, csharpAst);
         }

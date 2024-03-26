@@ -13,9 +13,10 @@ namespace IronPython.Compiler.Ast {
 }
 namespace CSharpToPython {
     public class CSharpToPythonConvert : Microsoft.CodeAnalysis.CSharp.CSharpSyntaxVisitor<PyAst.Node> {
-
+        public static string mainClassName;
 
         public override PyAst.Node DefaultVisit(SyntaxNode node) {
+            Console.WriteLine("WOW" + node);
             throw new NotImplementedException($"Node type {node.GetType().Name} not implemented yet.");
         }
 
@@ -700,6 +701,9 @@ namespace CSharpToPython {
             public EqualsValueClauseSyntax Initializer;
         }
         public override PyAst.Node VisitClassDeclaration(ClassDeclarationSyntax node) {
+            Console.WriteLine("WOW" + node);
+            if (mainClassName == null)
+                mainClassName = "" + node;
             _classNamesStack.Push(node.Identifier.Text);
             var bases = node.BaseList?.Types.Select(t => (PyAst.Expression)Visit(t)).ToArray()
                 ?? new PyAst.Expression[] { new PyAst.NameExpression("object") };
@@ -734,7 +738,6 @@ namespace CSharpToPython {
                 if (member is FieldDeclarationSyntax field
                         && !field.Modifiers.Any(CSharpSyntaxKind.StaticKeyword)) {
                     foreach (var variable in field.Declaration.Variables) {
-                        Console.WriteLine("WOW" + variable.Initializer);
                         instanceFields.Add(new FieldInfo {
                             IdentifierName = variable.Identifier.Text,
                             Initializer = variable.Initializer
