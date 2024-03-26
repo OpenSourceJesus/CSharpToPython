@@ -51,7 +51,7 @@ namespace CSharpToPython {
                 else
                 {
                     outputLine = outputLine.Replace(" : MonoBehaviour", ""); // TODO: Make this work with interfaces
-                    outputLine = outputLine.Replace("Time.time", "UGameplayStatics.GetRealTimeSeconds(UWorld.GetWorld())");
+                    outputLine = outputLine.Replace("Time.time", "UGameplayStatics.GetRealTimeSeconds(GetWorld())");
                     outputLine = outputLine.Replace("Mathf.Sin", "FMath.Sin");
                     outputLine = outputLine.Replace("Vector2.right", "FVector.RightVector");
                     if (outputLine.Contains("transform"))
