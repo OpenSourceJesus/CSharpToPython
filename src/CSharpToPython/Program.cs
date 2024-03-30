@@ -48,9 +48,8 @@ namespace CSharpToPython {
                 string outputLine = line;
                 if (line.Contains("using UnityEngine"))
                     continue;
-                else
+                else if (Translator.instance.GetType().Name == "UnityToUnreal")
                 {
-                    outputLine = outputLine.Replace(" : MonoBehaviour", ""); // TODO: Make this work with interfaces
                     outputLine = outputLine.Replace("Time.time", "UGameplayStatics.GetRealTimeSeconds(GetWorld())");
                     outputLine = outputLine.Replace("Mathf.Sin", "FMath.Sin");
                     outputLine = outputLine.Replace("Vector2.right", "FVector.RightVector");
@@ -70,10 +69,10 @@ namespace CSharpToPython {
                         }
                     }
                 }
+                outputLine = outputLine.Replace(" : MonoBehaviour", ""); // TODO: Make this work with interfaces
                 outputLines.Add(outputLine);
             }
             csharpCode = string.Join('\n', outputLines);
-            Console.WriteLine("WOW" + csharpCode);
             var csharpAst = Microsoft.CodeAnalysis.CSharp.SyntaxFactory.ParseSyntaxTree(csharpCode).GetRoot();
             return ConvertAndRunCode(engine, csharpAst);
         }
@@ -102,6 +101,8 @@ namespace CSharpToPython {
             }
             UnityToUnreal.pythonFileContents = convertedCode;
             UnityToBevy.pythonFileContents = convertedCode;
+            if (Translator.instance.GetType().Name == "UnityToBevy")
+                File.WriteAllText(Environment.CurrentDirectory + "/src/main.py", convertedCode);
             var scope = engine.Engine.CreateScope();
             var source = engine.Engine.CreateScriptSourceFromString(convertedCode, Microsoft.Scripting.SourceCodeKind.AutoDetect);
             return source.Execute(scope);

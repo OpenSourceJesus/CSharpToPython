@@ -16,7 +16,6 @@ namespace CSharpToPython {
         public static string mainClassName;
 
         public override PyAst.Node DefaultVisit(SyntaxNode node) {
-            Console.WriteLine("WOW" + node);
             throw new NotImplementedException($"Node type {node.GetType().Name} not implemented yet.");
         }
 
@@ -53,8 +52,16 @@ namespace CSharpToPython {
             return new PyAst.ListExpression(node.Initializer.Expressions.Select(e => (PyAst.Expression)Visit(e)).ToArray());
         }
         public override PyAst.Node VisitArrayCreationExpression(ArrayCreationExpressionSyntax node) {
-            var expressions = node.Initializer?.Expressions ?? Enumerable.Empty<ExpressionSyntax>();
-            return new PyAst.ListExpression(expressions.Select(e => (PyAst.Expression)Visit(e)).ToArray());
+            // try
+            // {
+                var expressions = node.Initializer?.Expressions ?? Enumerable.Empty<ExpressionSyntax>();
+                return new PyAst.ListExpression(expressions.Select(e => (PyAst.Expression)Visit(e)).ToArray());
+            // }
+            // catch (NotImplementedException notImplementedException)
+            // {
+            //     Console.WriteLine("WOW2" + notImplementedException);
+            //     return PyAst.ListExpression(new PyAst.ListExpression());
+            // }
         }
         public override PyAst.Node VisitObjectCreationExpression(ObjectCreationExpressionSyntax node) {
             if (node.Initializer != null) {
@@ -701,7 +708,6 @@ namespace CSharpToPython {
             public EqualsValueClauseSyntax Initializer;
         }
         public override PyAst.Node VisitClassDeclaration(ClassDeclarationSyntax node) {
-            Console.WriteLine("WOW" + node);
             if (mainClassName == null)
                 mainClassName = "" + node;
             _classNamesStack.Push(node.Identifier.Text);

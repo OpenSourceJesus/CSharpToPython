@@ -7,6 +7,7 @@ namespace CSharpToPython {
     public class PythonAstPrinter {
         private int IndentLevel;
         public readonly System.Text.StringBuilder stringBuilder = new System.Text.StringBuilder();
+        const string CLASS_MEMBER_VARIABLE_INDICATOR = "#💠";
 
         public static string PrintPythonAst(PyAst.Node node) {
             var printer = new PythonAstPrinter();
@@ -131,6 +132,7 @@ namespace CSharpToPython {
                 case null:
                     return "None";
                 default:
+                    Console.WriteLine(node.Value);
                     throw new NotImplementedException($"Printing of constant expression {node.Value.GetType()} not implemented");
             }
         }
@@ -145,7 +147,12 @@ namespace CSharpToPython {
             return $"lambda { args }: {convertedExpr}";
         }
         public string Visit(PyAst.ListComprehension node) => throw CreateNotImplementedEx();
-        public string Visit(PyAst.ListExpression node) => $"[{ VisitExpressionsList(node.Items)}]";
+        public string Visit(PyAst.ListExpression node)
+        {
+            string output = $"[{ VisitExpressionsList(node.Items)}]";
+            Console.WriteLine("WOW" + output);
+            return output;
+        }
         public string Visit(PyAst.MemberExpression node) => $"{Visit(node.Target)}.{node.Name}";
         public string Visit(PyAst.NameExpression node) => node.Name;
         public string Visit(PyAst.OrExpression node) => $"({Visit(node.Left)} or {Visit(node.Right)})";
@@ -203,7 +210,13 @@ namespace CSharpToPython {
 
         public void Visit(PyAst.AssertStatement node)=> throw CreateNotImplementedEx();
         public void Visit(PyAst.AssignmentStatement node) {
-            AppendLineWithIndentation($"{VisitExpressionsList(node.Left)} = {Visit(node.Right)}");
+            string setTo = Visit(node.Right);
+            AppendLineWithIndentation($"{VisitExpressionsList(node.Left)} = {setTo}");
+            if (node.Left[0] is PyAst.MemberExpression)
+            {
+                foreach (PyAst.MemberExpression expression in node.Left)
+                    stringBuilder.Insert(0, CLASS_MEMBER_VARIABLE_INDICATOR + expression.Name + ": " + setTo + '\n');
+            }
         }
         public void Visit(PyAst.AugmentedAssignStatement node) {
             string op;
