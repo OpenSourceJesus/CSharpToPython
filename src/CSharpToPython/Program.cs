@@ -64,7 +64,8 @@ namespace CSharpToPython {
                             {
                                 int indexofSemicolon = outputLine.IndexOf(';', indexOfEquals);
                                 string position = outputLine.SubstringStartEnd(indexOfEquals + 1, indexofSemicolon);
-                                outputLine = "SetActorLocation(" + position + ");";
+                                // outputLine = "SetActorLocation(" + position + ", false, null.hitResult, ETeleportType.none);";
+                                outputLine = "TeleportTo(" + position + ", GetActorRotation(), true, true);";
                             }
                         }
                     }
