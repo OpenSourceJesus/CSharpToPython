@@ -1,15 +1,26 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.IO;
+using System.Reflection;
 using PyAst = IronPython.Compiler.Ast;
 
 namespace CSharpToPython {
     public class PythonAstPrinter {
+
         private int IndentLevel;
         public readonly System.Text.StringBuilder stringBuilder = new System.Text.StringBuilder();
+        static Dictionary<string, string> typeFilePathsDict = new Dictionary<string, string>();
         const string CLASS_MEMBER_VARIABLE_INDICATOR = "#💠";
+        const string TYPE_AND_FILE_PATH_SEPERATOR = "🌰";
 
         public static string PrintPythonAst(PyAst.Node node) {
+            // string[] typeInfoFileLines = File.ReadAllLines("/tmp/Type Info");
+            // foreach (string line in typeInfoFileLines)
+            // {
+            //     string[] lineParts = line.Split(TYPE_AND_FILE_PATH_SEPERATOR);
+            //     typeFilePathsDict.Add(lineParts[0], lineParts[1]);
+            // }
             var printer = new PythonAstPrinter();
             printer.Visit(node);
             return printer.stringBuilder.ToString();
@@ -150,11 +161,19 @@ namespace CSharpToPython {
         public string Visit(PyAst.ListExpression node)
         {
             string output = $"[{ VisitExpressionsList(node.Items)}]";
-            Console.WriteLine("WOW" + output);
             return output;
         }
         public string Visit(PyAst.MemberExpression node) => $"{Visit(node.Target)}.{node.Name}";
-        public string Visit(PyAst.NameExpression node) => node.Name;
+        public string Visit(PyAst.NameExpression node)
+        {
+            string typeFilePath;
+            // if (typeFilePathsDict.TryGetValue(node.Name, out typeFilePath))
+            // {
+            //     string[] typeNameAndFilePath = typeFilePath.Split(TYPE_AND_FILE_PATH_SEPERATOR);
+                
+            // }
+            return node.Name;
+        }
         public string Visit(PyAst.OrExpression node) => $"({Visit(node.Left)} or {Visit(node.Right)})";
         public string Visit(PyAst.ParenthesisExpression node) => $"({Visit(node.Expression)})";
         public string Visit(PyAst.SetComprehension node) => throw CreateNotImplementedEx();
@@ -204,6 +223,7 @@ namespace CSharpToPython {
                 case PyAst.WhileStatement n: Visit(n); return;
                 case PyAst.WithStatement n: Visit(n); return;
                 default:
+                    Console.WriteLine("Error: " + node);
                     throw new NotImplementedException($"Printing of statement {node} not implemented");
             }
         }
@@ -226,6 +246,7 @@ namespace CSharpToPython {
                 case IronPython.Compiler.PythonOperator.Multiply: op = "*="; break;
                 case IronPython.Compiler.PythonOperator.Divide: op = "/="; break;
                 default:
+                    Console.WriteLine("Error: " + node);
                     throw CreateNotImplementedEx();
             }
             AppendLineWithIndentation($"{Visit(node.Left)} {op} {Visit(node.Right)}");
@@ -256,14 +277,14 @@ namespace CSharpToPython {
             }
         }
         public void Visit(PyAst.FromImportStatement node) {
-            var aliasPart = node.AsNames is null ? "" : $" as {node.AsNames.Single()}";
-            var isUsingStatic = node.Root.Names.Contains(CSharpToPythonConvert.UsingStaticMagicString);
-            var modName = FormatDottedName(
-                node.Root,
-                isUsingStatic ? new[] { CSharpToPythonConvert.UsingStaticMagicString } : Array.Empty<string>()
-            );
-            var usingStaticWarningComment = isUsingStatic ? " #ERROR: Was using static directive" : "";
-            AppendLineWithIndentation($"from {modName} import *{aliasPart}{usingStaticWarningComment}");
+            // var aliasPart = node.AsNames is null ? "" : $" as {node.AsNames.Single()}";
+            // var isUsingStatic = node.Root.Names.Contains(CSharpToPythonConvert.UsingStaticMagicString);
+            // var modName = FormatDottedName(
+            //     node.Root,
+            //     isUsingStatic ? new[] { CSharpToPythonConvert.UsingStaticMagicString } : Array.Empty<string>()
+            // );
+            // var usingStaticWarningComment = isUsingStatic ? " #ERROR: Was using static directive" : "";
+            // AppendLineWithIndentation($"from {modName} import *{aliasPart}{usingStaticWarningComment}");
         }
         private string FormatDottedName(PyAst.DottedName name, params string[] namesToRemove) {
             var names = namesToRemove.Any() ? name.Names.Except(namesToRemove).ToList() : name.Names;
@@ -388,6 +409,10 @@ namespace CSharpToPython {
 
         private NotImplementedException CreateNotImplementedEx(
                 [System.Runtime.CompilerServices.CallerMemberName] string caller = null) {
+            Console.WriteLine("WOW" + caller);
+            MemberInfo[] members = caller.GetType().GetMembers();
+            foreach (MemberInfo memberInfo in members)
+                Console.WriteLine(memberInfo.Name);
             return new NotImplementedException(caller);
         }
     }

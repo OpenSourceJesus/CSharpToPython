@@ -100,13 +100,27 @@ namespace CSharpToPython {
                 //     convertedCode += $"\r\n{lastClassDef.Name}()";
                 // }
             }
+            convertedCode = convertedCode.Replace("from", "from_");
             UnityToUnreal.pythonFileContents = convertedCode;
             UnityToBevy.pythonFileContents = convertedCode;
             if (Translator.instance.GetType().Name == "UnityToBevy")
                 File.WriteAllText(Environment.CurrentDirectory + "/src/main.py", convertedCode);
-            var scope = engine.Engine.CreateScope();
-            var source = engine.Engine.CreateScriptSourceFromString(convertedCode, Microsoft.Scripting.SourceCodeKind.AutoDetect);
-            return source.Execute(scope);
+            // var scope = engine.Engine.CreateScope();
+            // var source = engine.Engine.CreateScriptSourceFromString(convertedCode, Microsoft.Scripting.SourceCodeKind.AutoDetect);
+            // try
+            // {
+            //     return source.Execute(scope);
+            // }
+            // catch (Microsoft.Scripting.SyntaxErrorException syntaxErrorException)
+            // {
+            //     Console.WriteLine("WOW" + syntaxErrorException.TargetSite);
+            //     foreach (var keyValuePair in syntaxErrorException.Data)
+            //       Console.WriteLine("WOW" + keyValuePair);
+            //     Console.WriteLine("WOW" + source);
+            //     Console.WriteLine(source.GetReader().ReadToEnd());
+            //     return source.Execute(scope);
+            // }
+            return null;
         }
 
         public static string ConvertExpressionCode(string csharpCode) {

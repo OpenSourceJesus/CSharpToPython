@@ -234,6 +234,11 @@ namespace CSharpToPython {
                 case (int)CSharpSyntaxKind.FloatKeyword: convertedTypeName = "float"; break;
                 case (int)CSharpSyntaxKind.DoubleKeyword: convertedTypeName = "float"; break;
                 default:
+                    if ("" + node == "uint")
+                    {
+                        convertedTypeName = "int";
+                        break;
+                    }
                     throw new NotImplementedException($"Predefined type {node} not implemented");
             }
             return new PyAst.NameExpression(convertedTypeName);
@@ -638,9 +643,9 @@ namespace CSharpToPython {
         }
 
         public override PyAst.Node VisitPropertyDeclaration(PropertyDeclarationSyntax node) {
-            if (node.Modifiers.Any(CSharpSyntaxKind.StaticKeyword)) {
-                throw new NotImplementedException("Static properties not implemented");
-            }
+            // if (node.Modifiers.Any(CSharpSyntaxKind.StaticKeyword)) {
+            //     throw new NotImplementedException("Static properties not implemented");
+            // }
 
             var getterAndSetterStatements = new List<PyAst.Statement>();
             PyAst.Statement createFromStatement(PyAst.Statement statement, bool isGetter) {
