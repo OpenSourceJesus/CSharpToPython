@@ -16,6 +16,7 @@ namespace CSharpToPython {
         public static string mainClassName;
 
         public override PyAst.Node DefaultVisit(SyntaxNode node) {
+            Console.WriteLine("WOW" + PythonAstPrinter.stringBuilder.ToString());
             throw new NotImplementedException($"Node type {node.GetType().Name} not implemented yet.");
         }
 
@@ -239,6 +240,11 @@ namespace CSharpToPython {
                         convertedTypeName = "int";
                         break;
                     }
+                    else if ("" + node == "byte")
+                    {
+                        convertedTypeName = "int";
+                        break;
+                    }
                     throw new NotImplementedException($"Predefined type {node} not implemented");
             }
             return new PyAst.NameExpression(convertedTypeName);
@@ -388,20 +394,33 @@ namespace CSharpToPython {
             var ifStmt = node;
             StatementSyntax finalElseStmt = null;
             while (ifStmt != null) {
-                ifClauses.Add(new PyAst.IfStatementTest(
-                    (PyAst.Expression)Visit(ifStmt.Condition),
-                    (PyAst.Statement)Visit(ifStmt.Statement)
-                ));
+                if (ifStmt.Statement is PyAst.Statement)
+                {
+                    ifClauses.Add(new PyAst.IfStatementTest(
+                        (PyAst.Expression)Visit(ifStmt.Condition),
+                        (PyAst.Statement)Visit(ifStmt.Statement)
+                    ));
+                }
                 var elseStmt = ifStmt.Else?.Statement;
                 ifStmt = elseStmt as IfStatementSyntax;
                 if (ifStmt is null) {
                     finalElseStmt = elseStmt;
                 }
             }
-            return new PyAst.IfStatement(
-                ifClauses.ToArray(),
-                finalElseStmt is null ? null : (PyAst.Statement)Visit(finalElseStmt)
-            );
+            if (finalElseStmt is PyAst.Statement)
+            {
+                return new PyAst.IfStatement(
+                    ifClauses.ToArray(),
+                    finalElseStmt is null ? null : (PyAst.Statement)Visit(finalElseStmt)
+                );
+            }
+            else
+            {
+                return new PyAst.IfStatement(
+                    ifClauses.ToArray(),
+                    null
+                );
+            }
         }
 
         public override PyAst.Node VisitSwitchStatement(SwitchStatementSyntax node) {
@@ -536,8 +555,16 @@ namespace CSharpToPython {
 
         public override PyAst.Node VisitBlock(BlockSyntax node) => ConvertStatementsToSuiteStmt(node.Statements);
         private PyAst.SuiteStatement ConvertStatementsToSuiteStmt(IReadOnlyList<StatementSyntax> statements) {
-            var convertedStatements = statements.Select(s => (PyAst.Statement)Visit(s)).ToArray();
-            return new PyAst.SuiteStatement(EnsureAtleastOneStatement(convertedStatements));
+            List<PyAst.Statement> convertedStatements = new List<PyAst.Statement>();
+            foreach (StatementSyntax statementSyntax in statements)
+            {
+                PyAst.Statement statement = Visit(statementSyntax) as PyAst.Statement;
+                if (statement != null)
+                    convertedStatements.Add(statement);
+            }
+            // var convertedStatements = statements.Select(s => (PyAst.Statement)Visit(s)).ToArray();
+            // return new PyAst.SuiteStatement(EnsureAtleastOneStatement(convertedStatements));
+            return new PyAst.SuiteStatement(EnsureAtleastOneStatement(convertedStatements.ToArray()));
         }
 
         public override PyAst.Node VisitLocalFunctionStatement(LocalFunctionStatementSyntax node) {
@@ -1204,9 +1231,10 @@ namespace CSharpToPython {
         //    return base.VisitIncompleteMember(node);
         //}
 
-        //public override PyAst.Node VisitIndexerDeclaration(IndexerDeclarationSyntax node) {
-        //    return base.VisitIndexerDeclaration(node);
-        //}
+        public override PyAst.Node VisitIndexerDeclaration(IndexerDeclarationSyntax node) {
+            Console.WriteLine("WOW" + node);
+           return base.VisitIndexerDeclaration(node);
+        }
 
         //public override PyAst.Node VisitIndexerMemberCref(IndexerMemberCrefSyntax node) {
         //    return base.VisitIndexerMemberCref(node);
@@ -1449,9 +1477,10 @@ namespace CSharpToPython {
         //}
 
 
-        //public override PyAst.Node VisitYieldStatement(YieldStatementSyntax node) {
+        public override PyAst.Node VisitYieldStatement(YieldStatementSyntax node) {
+            return new PyAst.YieldExpression(node.Expression is null ? null : (PyAst.Expression) Visit(node.Expression));
         //    return base.VisitYieldStatement(node);
-        //}
+        }
 
     }
 

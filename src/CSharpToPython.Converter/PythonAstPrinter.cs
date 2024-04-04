@@ -9,7 +9,8 @@ namespace CSharpToPython {
     public class PythonAstPrinter {
 
         private int IndentLevel;
-        public readonly System.Text.StringBuilder stringBuilder = new System.Text.StringBuilder();
+        // public readonly System.Text.StringBuilder stringBuilder = new System.Text.StringBuilder();
+        public static System.Text.StringBuilder stringBuilder = new System.Text.StringBuilder();
         static Dictionary<string, string> typeFilePathsDict = new Dictionary<string, string>();
         const string CLASS_MEMBER_VARIABLE_INDICATOR = "#💠";
         const string TYPE_AND_FILE_PATH_SEPERATOR = "🌰";
@@ -23,7 +24,8 @@ namespace CSharpToPython {
             // }
             var printer = new PythonAstPrinter();
             printer.Visit(node);
-            return printer.stringBuilder.ToString();
+            return stringBuilder.ToString();
+            // return printer.stringBuilder.ToString();
         }
 
         private void AppendWithIndentation(string line)
@@ -144,6 +146,7 @@ namespace CSharpToPython {
                     return "None";
                 default:
                     Console.WriteLine(node.Value);
+                    return "" + node.Value;
                     throw new NotImplementedException($"Printing of constant expression {node.Value.GetType()} not implemented");
             }
         }
@@ -166,12 +169,13 @@ namespace CSharpToPython {
         public string Visit(PyAst.MemberExpression node) => $"{Visit(node.Target)}.{node.Name}";
         public string Visit(PyAst.NameExpression node)
         {
-            string typeFilePath;
+            // string typeFilePath;
             // if (typeFilePathsDict.TryGetValue(node.Name, out typeFilePath))
             // {
             //     string[] typeNameAndFilePath = typeFilePath.Split(TYPE_AND_FILE_PATH_SEPERATOR);
                 
             // }
+            // if (node.Name == "NagetiveInfinity")
             return node.Name;
         }
         public string Visit(PyAst.OrExpression node) => $"({Visit(node.Left)} or {Visit(node.Right)})";
@@ -193,7 +197,11 @@ namespace CSharpToPython {
             }
             return $"{operatorText}{Visit(node.Expression)}";
         }
-        public string Visit(PyAst.YieldExpression node) => throw CreateNotImplementedEx();
+        // public string Visit(PyAst.YieldExpression node) => throw CreateNotImplementedEx();
+        public string Visit(PyAst.YieldExpression node)
+        {
+            return $"yield {Visit(node.Expression)}";
+        }
 
 
         public void Visit(PyAst.Statement node) {

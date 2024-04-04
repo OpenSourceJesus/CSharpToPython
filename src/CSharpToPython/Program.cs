@@ -5,6 +5,9 @@ using PyAst = IronPython.Compiler.Ast;
 namespace CSharpToPython {
     public class Program
     {
+        const byte UNITY_TO_UNREAL_UNITS = 100;
+        const string CURRENT_KEYBOARD_INDICATOR = "Keyboard.current.";
+
         public static void Example() {
             var engineWrapper = new EngineWrapper();
             var engine = engineWrapper.Engine;
@@ -65,8 +68,22 @@ namespace CSharpToPython {
                                 int indexofSemicolon = outputLine.IndexOf(';', indexOfEquals);
                                 string position = outputLine.SubstringStartEnd(indexOfEquals + 1, indexofSemicolon);
                                 // outputLine = "SetActorLocation(" + position + ", false, null.hitResult, ETeleportType.none);";
-                                outputLine = "TeleportTo(" + position + ", GetActorRotation(), true, true);";
+                                outputLine = "TeleportTo(" + position + " * " + UNITY_TO_UNREAL_UNITS + ", GetActorRotation(), true, true);";
                             }
+                        }
+                    }
+                    int indexOfCurrentKeyboard = 0;
+                    while (indexOfCurrentKeyboard != -1)
+                    {
+                        indexOfCurrentKeyboard = outputLine.IndexOf(CURRENT_KEYBOARD_INDICATOR);
+                        if (indexOfCurrentKeyboard != -1)
+                        {
+                            int indexOfPeriod = outputLine.IndexOf('.', indexOfCurrentKeyboard + CURRENT_KEYBOARD_INDICATOR.Length);
+                            string key = outputLine.SubstringStartEnd(indexOfCurrentKeyboard + CURRENT_KEYBOARD_INDICATOR.Length, indexOfPeriod);
+                            int indexOfEndOfClauseAfterKey = outputLine.IndexOfAny(new char[] { '.', ' ', ';', ')' }, indexOfPeriod + 1);
+                            string clauseAfterKey = outputLine.SubstringStartEnd(indexOfPeriod + 1, indexOfEndOfClauseAfterKey);
+                            if (clauseAfterKey == "isPressed")
+                                outputLine = outputLine.Replace(CURRENT_KEYBOARD_INDICATOR + key + '.' + clauseAfterKey, "APlayerController::new().IsInputKeyDown(FKey::new(" + key + "))");
                         }
                     }
                 }
@@ -105,21 +122,20 @@ namespace CSharpToPython {
             UnityToBevy.pythonFileContents = convertedCode;
             if (Translator.instance.GetType().Name == "UnityToBevy")
                 File.WriteAllText(Environment.CurrentDirectory + "/src/main.py", convertedCode);
-            // var scope = engine.Engine.CreateScope();
-            // var source = engine.Engine.CreateScriptSourceFromString(convertedCode, Microsoft.Scripting.SourceCodeKind.AutoDetect);
-            // try
-            // {
-            //     return source.Execute(scope);
-            // }
-            // catch (Microsoft.Scripting.SyntaxErrorException syntaxErrorException)
-            // {
-            //     Console.WriteLine("WOW" + syntaxErrorException.TargetSite);
-            //     foreach (var keyValuePair in syntaxErrorException.Data)
-            //       Console.WriteLine("WOW" + keyValuePair);
-            //     Console.WriteLine("WOW" + source);
-            //     Console.WriteLine(source.GetReader().ReadToEnd());
-            //     return source.Execute(scope);
-            // }
+            var scope = engine.Engine.CreateScope();
+            var source = engine.Engine.CreateScriptSourceFromString(convertedCode, Microsoft.Scripting.SourceCodeKind.AutoDetect);
+            Console.WriteLine("WOW" + convertedCode);
+            try
+            {
+                return source.Execute(scope);
+            }
+            catch (Microsoft.Scripting.SyntaxErrorException syntaxErrorException)
+            {
+                Console.WriteLine("WOW" + syntaxErrorException.TargetSite);
+                foreach (var keyValuePair in syntaxErrorException.Data)
+                    Console.WriteLine("WOW" + keyValuePair);
+                Console.WriteLine(source.GetReader().ReadToEnd());
+            }
             return null;
         }
 
