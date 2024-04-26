@@ -184,6 +184,29 @@ namespace CSharpToPython {
                     }
                     outputLine = outputLine.Replace("Transform", "FTransform");
                 }
+                else if (Translator.instance.GetType().Name == "UnityToBevy")
+                {
+                    int indexOfCurrentKeyboard = 0;
+                    while (indexOfCurrentKeyboard != -1)
+                    {
+                        indexOfCurrentKeyboard = outputLine.IndexOf(CURRENT_KEYBOARD_INDICATOR);
+                        if (indexOfCurrentKeyboard != -1)
+                        {
+                            int indexOfPeriod = outputLine.IndexOf('.', indexOfCurrentKeyboard + CURRENT_KEYBOARD_INDICATOR.Length);
+                            string key = outputLine.SubstringStartEnd(indexOfCurrentKeyboard + CURRENT_KEYBOARD_INDICATOR.Length, indexOfPeriod);
+                            string newKey = "";
+                            if (key.EndsWith("Key"))
+                            {
+                                newKey = key.Replace("Key", "");
+                                newKey = "Key" + newKey.ToUpper();
+                            }
+                            int indexOfEndOfClauseAfterKey = outputLine.IndexOfAny(new char[] { '.', ' ', ';', ')' }, indexOfPeriod + 1);
+                            string clauseAfterKey = outputLine.SubstringStartEnd(indexOfPeriod + 1, indexOfEndOfClauseAfterKey);
+                            if (clauseAfterKey == "isPressed")
+                                outputLine = outputLine.Replace(CURRENT_KEYBOARD_INDICATOR + key + '.' + clauseAfterKey, "keys.pressed(KeyCode." + CONSTANT_INDICATOR + newKey + ")");
+                        }
+                    }
+                }
                 outputLine = outputLine.Replace(" : MonoBehaviour", ""); // TODO: Make this work with interfaces
                 outputLines.Add(outputLine);
             }
