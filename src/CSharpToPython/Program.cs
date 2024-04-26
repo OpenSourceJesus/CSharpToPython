@@ -5,8 +5,15 @@ using PyAst = IronPython.Compiler.Ast;
 namespace CSharpToPython {
     public class Program
     {
-        const byte UNITY_TO_UNREAL_UNITS = 100;
+        static string UNREAL_PROJECT_PATH = Environment.CurrentDirectory + "/BareUEProject";
+        static string CODE_PATH = UNREAL_PROJECT_PATH + "/Source/BareUEProject";
+        static string[] SCREEN_TO_WORLD_POINT_INDICATORS = { "Camera.main.ScreenToWorldPoint(", "GetComponent<Camera>().ScreenToWorldPoint(" };
         const string CURRENT_KEYBOARD_INDICATOR = "Keyboard.current.";
+        const string CURRENT_MOUSE_INDICATOR = "Mouse.current.";
+        const string CONSTANT_INDICATOR = "const";
+        const string POINTER_INDICATOR = "ptr";
+        const string INSTANTIATE_INDICATOR = "Instantiate(";
+        // const string RESOURCES_INDICATOR = "Resources.";
 
         public static void Example() {
             var engineWrapper = new EngineWrapper();
@@ -53,25 +60,57 @@ namespace CSharpToPython {
                     continue;
                 else if (Translator.instance.GetType().Name == "UnityToUnreal")
                 {
-                    outputLine = outputLine.Replace("Time.time", "UGameplayStatics.GetRealTimeSeconds(GetWorld())");
-                    outputLine = outputLine.Replace("Mathf.Sin", "FMath.Sin");
-                    outputLine = outputLine.Replace("Vector2.right", "FVector.RightVector");
-                    if (outputLine.Contains("transform"))
+                    // int indexOfResources = 0;
+                    // while (indexOfResources != -1)
+                    // {
+                    //     indexOfResources = outputLine.IndexOf(RESOURCES_INDICATOR);
+                    //     if (indexOfResources != -1)
+                    //     {
+                            
+                    //     }
+                    // }
+                    outputLine = outputLine.Replace("Time.time", "UGameplayStatics." + CONSTANT_INDICATOR + "GetRealTimeSeconds(GetWorld())");
+                    outputLine = outputLine.Replace("Time.deltaTime", "UGameplayStatics." + CONSTANT_INDICATOR + "GetWorldDeltaSeconds(GetWorld())");
+                    outputLine = outputLine.Replace("Mathf.Sin", "FMath." + CONSTANT_INDICATOR + "Sin");
+                    outputLine = outputLine.Replace("Mathf.Cos", "FMath." + CONSTANT_INDICATOR + "Cos");
+                    outputLine = outputLine.Replace("Vector2.right", "FVector." + CONSTANT_INDICATOR + "XAxisVector");
+                    outputLine = outputLine.Replace("Vector3.forward", "FVector." + CONSTANT_INDICATOR + "YAxisVector");
+                    outputLine = outputLine.Replace("Mathf.Atan2", "UKismetMathLibrary." + CONSTANT_INDICATOR + "Atan2");
+                    int indexOfInstantiate = outputLine.IndexOf(INSTANTIATE_INDICATOR);
+                    if (indexOfInstantiate != -1)
                     {
-                        outputLine = outputLine.Replace("transform", "");
-                        int indexOfPosition = outputLine.IndexOf(".position");
-                        if (indexOfPosition != -1)
+                        string replaceWith = "SpawnActor(";
+                        int indexOfComma = outputLine.IndexOf(',', indexOfInstantiate);
+                        string argument1 = outputLine.SubstringStartEnd(indexOfInstantiate + INSTANTIATE_INDICATOR.Length, indexOfComma);
+                        replaceWith += argument1;
+                        int indexOfComma2 = outputLine.IndexOf(',', indexOfComma + 1);
+                        string argument2 = outputLine.SubstringStartEnd(indexOfComma + 1, indexOfComma2);
+                        replaceWith += ", " + argument2;
+                        int indexOfParenthesis = outputLine.GetIndexOfMatchingParenthesis(indexOfInstantiate + INSTANTIATE_INDICATOR.Length - 1);
+                        string argument3 = outputLine.SubstringStartEnd(indexOfComma2 + 1, indexOfParenthesis);
+                        replaceWith += ", " + argument3 + ')';
+                        outputLine = outputLine.Replace(outputLine.SubstringStartEnd(indexOfInstantiate, indexOfParenthesis), replaceWith);
+                    }
+                    int indexOfPosition = outputLine.IndexOf("transform.position");
+                    if (indexOfPosition != -1)
+                    {
+                        int indexOfEquals = outputLine.IndexOf('=', indexOfPosition);
+                        if (indexOfEquals != -1)
                         {
-                            int indexOfEquals = outputLine.IndexOf('=', indexOfPosition);
-                            if (indexOfEquals != -1)
-                            {
-                                int indexofSemicolon = outputLine.IndexOf(';', indexOfEquals);
-                                string position = outputLine.SubstringStartEnd(indexOfEquals + 1, indexofSemicolon);
-                                // outputLine = "SetActorLocation(" + position + ", false, null.hitResult, ETeleportType.none);";
-                                outputLine = "TeleportTo(" + position + " * " + UNITY_TO_UNREAL_UNITS + ", GetActorRotation(), true, true);";
-                            }
+                            int indexofSemicolon = outputLine.IndexOf(';', indexOfEquals);
+                            string position = outputLine.SubstringStartEnd(indexOfEquals + 1, indexofSemicolon);
+                            outputLine = "TeleportTo(" + position + ", GetActorRotation(), true, true);";
                         }
                     }
+                    outputLine = outputLine.Replace("transform.position", "GetActorLocation()");
+                    outputLine = outputLine.Replace("transform.rotation", "GetActorRotation()");
+                    outputLine = outputLine.Replace("transform.up", "GetActorRightVector()");
+                    outputLine = outputLine.Replace("Vector2.zero", "FVector." + CONSTANT_INDICATOR + "ZeroVector");
+                    outputLine = outputLine.Replace(".x", ".X");
+                    outputLine = outputLine.Replace(".y", ".Z");
+                    outputLine = outputLine.Replace(".z", ".Y");
+                    outputLine = outputLine.Replace("Vector2", "FVector2D");
+                    outputLine = outputLine.Replace("Vector3", "FVector");
                     int indexOfCurrentKeyboard = 0;
                     while (indexOfCurrentKeyboard != -1)
                     {
@@ -80,12 +119,70 @@ namespace CSharpToPython {
                         {
                             int indexOfPeriod = outputLine.IndexOf('.', indexOfCurrentKeyboard + CURRENT_KEYBOARD_INDICATOR.Length);
                             string key = outputLine.SubstringStartEnd(indexOfCurrentKeyboard + CURRENT_KEYBOARD_INDICATOR.Length, indexOfPeriod);
+                            string newKey = "";
+                            if (key.EndsWith("Key"))
+                            {
+                                newKey = key.Replace("Key", "");
+                                newKey = newKey.ToUpper();
+                            }
                             int indexOfEndOfClauseAfterKey = outputLine.IndexOfAny(new char[] { '.', ' ', ';', ')' }, indexOfPeriod + 1);
                             string clauseAfterKey = outputLine.SubstringStartEnd(indexOfPeriod + 1, indexOfEndOfClauseAfterKey);
                             if (clauseAfterKey == "isPressed")
-                                outputLine = outputLine.Replace(CURRENT_KEYBOARD_INDICATOR + key + '.' + clauseAfterKey, "APlayerController::new().IsInputKeyDown(FKey::new(" + key + "))");
+                                outputLine = outputLine.Replace(CURRENT_KEYBOARD_INDICATOR + key + '.' + clauseAfterKey, "UGameplayStatics." + CONSTANT_INDICATOR + "GetPlayerController(GetWorld(), 0)." + POINTER_INDICATOR + "IsInputKeyDown(EKeys." + CONSTANT_INDICATOR + newKey + ")");
                         }
                     }
+                    int indexOfCurrentMouse = 0;
+                    while (indexOfCurrentMouse != -1)
+                    {
+                        indexOfCurrentMouse = outputLine.IndexOf(CURRENT_MOUSE_INDICATOR);
+                        if (indexOfCurrentMouse != -1)
+                        {
+                            string command = outputLine.Substring(indexOfCurrentMouse + CURRENT_MOUSE_INDICATOR.Length);
+                            if (command.StartsWith("position.ReadValue()"))
+                                outputLine = outputLine.Replace(CURRENT_MOUSE_INDICATOR + "position.ReadValue()", "Utils." + CONSTANT_INDICATOR + "GetMousePosition(GetWorld())");
+                            else
+                            {
+                                int indexOfPeriod = outputLine.IndexOf('.', indexOfCurrentMouse + CURRENT_MOUSE_INDICATOR.Length);
+                                string button = outputLine.SubstringStartEnd(indexOfCurrentMouse + CURRENT_MOUSE_INDICATOR.Length, indexOfPeriod);
+                                string key = "";
+                                if (button == "leftButton")
+                                    key = "LeftMouseButton";
+                                else if (button == "rightButton")
+                                    key = "RightMouseButton";
+                                int indexOfEndOfClauseAfterButton = outputLine.IndexOfAny(new char[] { '.', ' ', ';', ')' }, indexOfPeriod + 1);
+                                string clauseAfterButton = outputLine.SubstringStartEnd(indexOfPeriod + 1, indexOfEndOfClauseAfterButton);
+                                if (clauseAfterButton == "isPressed")
+                                    outputLine = outputLine.Replace(CURRENT_MOUSE_INDICATOR + button + '.' + clauseAfterButton, "UGameplayStatics." + CONSTANT_INDICATOR + "GetPlayerController(GetWorld(), 0)." + POINTER_INDICATOR + "IsInputKeyDown(EKeys." + CONSTANT_INDICATOR + key + ")");
+                            }
+                        }
+                    }
+                    foreach (string screenToWorldPoiIndicator in SCREEN_TO_WORLD_POINT_INDICATORS)
+                    {
+                        int screenToWorldPoiIndictorIndex = outputLine.IndexOf(screenToWorldPoiIndicator);
+                        if (screenToWorldPoiIndictorIndex != -1)
+                            outputLine = outputLine.Replace(screenToWorldPoiIndicator, "Utils." + CONSTANT_INDICATOR + "ScreenToWorldPoint(GetWorld(), ");
+                    }
+                    int indexOfTrsUp = outputLine.IndexOf("transform.up");
+                    if (indexOfTrsUp != -1)
+                    {
+                        int indexOfStatementEnd = outputLine.IndexOf(';', indexOfTrsUp);
+                        string statement = outputLine.SubstringStartEnd(indexOfTrsUp, indexOfStatementEnd);
+                        int indexOfEquals = outputLine.IndexOf('=', indexOfTrsUp);
+                        string facingText = outputLine.SubstringStartEnd(indexOfEquals + 1, indexOfStatementEnd);
+                        string rotatorText = "UKismetMathLibrary." + CONSTANT_INDICATOR + "MakeRotFromZ(" + facingText + ")";
+                        outputLine = outputLine.Replace(statement, "SetActorRotation(" + rotatorText + ", ETeleportType." + CONSTANT_INDICATOR + "TeleportPhysics);");
+                    }
+                    int indexOfTrsEulerAngles = outputLine.IndexOf("transform.eulerAngles");
+                    if (indexOfTrsEulerAngles != -1)
+                    {
+                        int indexOfStatementEnd = outputLine.IndexOf(';', indexOfTrsEulerAngles);
+                        string statement = outputLine.SubstringStartEnd(indexOfTrsEulerAngles, indexOfStatementEnd);
+                        int indexOfEquals = outputLine.IndexOf('=', indexOfTrsEulerAngles);
+                        string facingText = outputLine.SubstringStartEnd(indexOfEquals + 1, indexOfStatementEnd);
+                        string rotatorText = "FQuat." + CONSTANT_INDICATOR + "MakeFromEuler(" + facingText + ").Rotator()";
+                        outputLine = outputLine.Replace(statement, "SetActorRotation(" + rotatorText + ", ETeleportType." + CONSTANT_INDICATOR + "TeleportPhysics);");
+                    }
+                    outputLine = outputLine.Replace("Transform", "FTransform");
                 }
                 outputLine = outputLine.Replace(" : MonoBehaviour", ""); // TODO: Make this work with interfaces
                 outputLines.Add(outputLine);
@@ -118,13 +215,16 @@ namespace CSharpToPython {
                 // }
             }
             convertedCode = convertedCode.Replace("from", "from_");
+            foreach (string member in CSharpToPythonConvert.membersToAdd)
+                convertedCode += member + '\n';
+            convertedCode = convertedCode.Replace("FFTransform", "FTransform");
             UnityToUnreal.pythonFileContents = convertedCode;
             UnityToBevy.pythonFileContents = convertedCode;
+            UnityToGodot.pythonFileContents = convertedCode;
             if (Translator.instance.GetType().Name == "UnityToBevy")
                 File.WriteAllText(Environment.CurrentDirectory + "/src/main.py", convertedCode);
             var scope = engine.Engine.CreateScope();
             var source = engine.Engine.CreateScriptSourceFromString(convertedCode, Microsoft.Scripting.SourceCodeKind.AutoDetect);
-            Console.WriteLine("WOW" + convertedCode);
             try
             {
                 return source.Execute(scope);
@@ -135,6 +235,10 @@ namespace CSharpToPython {
                 foreach (var keyValuePair in syntaxErrorException.Data)
                     Console.WriteLine("WOW" + keyValuePair);
                 Console.WriteLine(source.GetReader().ReadToEnd());
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("WOW" + e.Message);
             }
             return null;
         }

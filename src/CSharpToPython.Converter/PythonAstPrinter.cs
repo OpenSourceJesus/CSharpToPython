@@ -12,6 +12,7 @@ namespace CSharpToPython {
         // public readonly System.Text.StringBuilder stringBuilder = new System.Text.StringBuilder();
         public static System.Text.StringBuilder stringBuilder = new System.Text.StringBuilder();
         static Dictionary<string, string> typeFilePathsDict = new Dictionary<string, string>();
+        static Dictionary<string, string> variablesTypesDict = new Dictionary<string, string>();
         const string CLASS_MEMBER_VARIABLE_INDICATOR = "#💠";
         const string TYPE_AND_FILE_PATH_SEPERATOR = "🌰";
 
@@ -91,6 +92,12 @@ namespace CSharpToPython {
                 default:
                     throw new NotImplementedException($"Printing of operator {node.Operator} not implemented");
             }
+            // string type;
+            // if (variablesTypesDict.TryGetValue("" + Visit(node.Left), out type))
+            //     return $"({Visit(node.Left)} {operatorText} ({type}) {Visit(node.Right)})";
+            PyAst.CallExpression callExpression = node.Left as PyAst.CallExpression;
+            if (callExpression != null)
+                Console.WriteLine("WOW3" + callExpression.Target);
             return $"({Visit(node.Left)} {operatorText} {Visit(node.Right)})";
         }
         public string Visit(PyAst.CallExpression node) {
@@ -166,7 +173,15 @@ namespace CSharpToPython {
             string output = $"[{ VisitExpressionsList(node.Items)}]";
             return output;
         }
-        public string Visit(PyAst.MemberExpression node) => $"{Visit(node.Target)}.{node.Name}";
+        public string Visit(PyAst.MemberExpression node)
+        {
+            if (node.Target is not PyAst.CallExpression && !variablesTypesDict.ContainsKey(Visit(node.Target) + "." + node.Name))
+            {
+                Console.WriteLine("WOW2" + Visit(node.Target) + "." + node.Name);
+                variablesTypesDict.Add(Visit(node.Target) + "." + node.Name, "" + Visit(node.Target));
+            }
+            return $"{Visit(node.Target)}.{node.Name}";
+        }
         public string Visit(PyAst.NameExpression node)
         {
             // string typeFilePath;
@@ -245,6 +260,8 @@ namespace CSharpToPython {
                 foreach (PyAst.MemberExpression expression in node.Left)
                     stringBuilder.Insert(0, CLASS_MEMBER_VARIABLE_INDICATOR + expression.Name + ": " + setTo + '\n');
             }
+            // variablesTypesDict.Add("" + node.Left, node.Value.GetType().Name);
+            // Console.WriteLine("WOWOW" + node.Left + " " + node.Right.Value.GetType().Name);
         }
         public void Visit(PyAst.AugmentedAssignStatement node) {
             string op;
@@ -285,14 +302,14 @@ namespace CSharpToPython {
             }
         }
         public void Visit(PyAst.FromImportStatement node) {
-            // var aliasPart = node.AsNames is null ? "" : $" as {node.AsNames.Single()}";
-            // var isUsingStatic = node.Root.Names.Contains(CSharpToPythonConvert.UsingStaticMagicString);
-            // var modName = FormatDottedName(
-            //     node.Root,
-            //     isUsingStatic ? new[] { CSharpToPythonConvert.UsingStaticMagicString } : Array.Empty<string>()
-            // );
-            // var usingStaticWarningComment = isUsingStatic ? " #ERROR: Was using static directive" : "";
-            // AppendLineWithIndentation($"from {modName} import *{aliasPart}{usingStaticWarningComment}");
+            var aliasPart = node.AsNames is null ? "" : $" as {node.AsNames.Single()}";
+            var isUsingStatic = node.Root.Names.Contains(CSharpToPythonConvert.UsingStaticMagicString);
+            var modName = FormatDottedName(
+                node.Root,
+                isUsingStatic ? new[] { CSharpToPythonConvert.UsingStaticMagicString } : Array.Empty<string>()
+            );
+            var usingStaticWarningComment = isUsingStatic ? " #ERROR: Was using static directive" : "";
+            AppendLineWithIndentation($"from {modName} import *{aliasPart}{usingStaticWarningComment}");
         }
         private string FormatDottedName(PyAst.DottedName name, params string[] namesToRemove) {
             var names = namesToRemove.Any() ? name.Names.Except(namesToRemove).ToList() : name.Names;

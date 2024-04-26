@@ -6,6 +6,7 @@ using CSharpSyntaxKind = Microsoft.CodeAnalysis.CSharp.SyntaxKind;
 using PythonOperator = IronPython.Compiler.PythonOperator;
 using System.Collections.Generic;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using SyntaxFactory = Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace IronPython.Compiler.Ast {
@@ -14,6 +15,10 @@ namespace IronPython.Compiler.Ast {
 namespace CSharpToPython {
     public class CSharpToPythonConvert : Microsoft.CodeAnalysis.CSharp.CSharpSyntaxVisitor<PyAst.Node> {
         public static string mainClassName;
+        public static List<string> membersToAdd = new List<string>();
+        public static string memberToAddName;
+        public static string memberToAddValueSetter;
+        public static string memberToAddTypeSetter;
 
         public override PyAst.Node DefaultVisit(SyntaxNode node) {
             Console.WriteLine("WOW" + PythonAstPrinter.stringBuilder.ToString());
@@ -394,33 +399,33 @@ namespace CSharpToPython {
             var ifStmt = node;
             StatementSyntax finalElseStmt = null;
             while (ifStmt != null) {
-                if (ifStmt.Statement is PyAst.Statement)
-                {
+                // if (ifStmt.Statement is PyAst.Statement)
+                // {
                     ifClauses.Add(new PyAst.IfStatementTest(
                         (PyAst.Expression)Visit(ifStmt.Condition),
                         (PyAst.Statement)Visit(ifStmt.Statement)
                     ));
-                }
+                // }
                 var elseStmt = ifStmt.Else?.Statement;
                 ifStmt = elseStmt as IfStatementSyntax;
                 if (ifStmt is null) {
                     finalElseStmt = elseStmt;
                 }
             }
-            if (finalElseStmt is PyAst.Statement)
-            {
+            // if (finalElseStmt is PyAst.Statement)
+            // {
                 return new PyAst.IfStatement(
                     ifClauses.ToArray(),
                     finalElseStmt is null ? null : (PyAst.Statement)Visit(finalElseStmt)
                 );
-            }
-            else
-            {
+            // }
+            // else
+            // {
                 return new PyAst.IfStatement(
                     ifClauses.ToArray(),
                     null
                 );
-            }
+            // }
         }
 
         public override PyAst.Node VisitSwitchStatement(SwitchStatementSyntax node) {
@@ -745,7 +750,16 @@ namespace CSharpToPython {
             _classNamesStack.Push(node.Identifier.Text);
             var bases = node.BaseList?.Types.Select(t => (PyAst.Expression)Visit(t)).ToArray()
                 ?? new PyAst.Expression[] { new PyAst.NameExpression("object") };
-
+            foreach (MemberDeclarationSyntax memberDeclarationSyntax in node.Members)
+            {
+                if (memberDeclarationSyntax.IsKind(CSharpSyntaxKind.FieldDeclaration))
+                {
+                    SyntaxTree tree = CSharpSyntaxTree.ParseText("" + memberDeclarationSyntax);
+                    ConvertSyntaxNode (tree.GetRoot());
+                    memberToAddValueSetter = "";
+                    membersToAdd.Add(memberToAddName + memberToAddTypeSetter + memberToAddValueSetter);
+                }
+            }
             var convertedMembers = ConvertClassMembers(
                     node.Members,
                     node.Identifier,
@@ -943,6 +957,23 @@ namespace CSharpToPython {
             var members = node.Members.Select(m => (PyAst.Statement)Visit(m));
             var allStatements = usings.Concat(members).ToArray();
             return new PyAst.SuiteStatement(allStatements);
+        }
+
+        void ConvertSyntaxNode (SyntaxNode node)
+        {
+            if (node.IsKind(CSharpSyntaxKind.VariableDeclarator))
+            {
+                memberToAddName = "" + node;
+                int indexOfEquals = memberToAddName.IndexOf('=');
+                if (indexOfEquals != -1)
+                    memberToAddName = memberToAddName.Remove(indexOfEquals);
+            }
+            else if (node.IsKind(CSharpSyntaxKind.EqualsValueClause))
+                memberToAddValueSetter = "" + node;
+            else if (node.IsKind(CSharpSyntaxKind.IdentifierName) || node.IsKind(CSharpSyntaxKind.PredefinedType))
+                memberToAddTypeSetter = " : " + node;
+            foreach (SyntaxNode child in node.ChildNodes())
+                ConvertSyntaxNode (child);
         }
 
 
@@ -1246,7 +1277,7 @@ namespace CSharpToPython {
 
         //public override PyAst.Node VisitInterpolation(InterpolationSyntax node) {
         //    return base.VisitInterpolation(node);
-        //}
+        //}memberToAdd
 
         //public override PyAst.Node VisitInterpolationAlignmentClause(InterpolationAlignmentClauseSyntax node) {
         //    return base.VisitInterpolationAlignmentClause(node);
