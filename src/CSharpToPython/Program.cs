@@ -206,6 +206,31 @@ namespace CSharpToPython {
                                 outputLine = outputLine.Replace(CURRENT_KEYBOARD_INDICATOR + key + '.' + clauseAfterKey, "keys.pressed(KeyCode." + CONSTANT_INDICATOR + newKey + ")");
                         }
                     }
+                    int indexOfCurrentMouse = 0;
+                    while (indexOfCurrentMouse != -1)
+                    {
+                        indexOfCurrentMouse = outputLine.IndexOf(CURRENT_MOUSE_INDICATOR);
+                        if (indexOfCurrentMouse != -1)
+                        {
+                            string command = outputLine.Substring(indexOfCurrentMouse + CURRENT_MOUSE_INDICATOR.Length);
+                            if (command.StartsWith("position.ReadValue()"))
+                                outputLine = outputLine.Replace(CURRENT_MOUSE_INDICATOR + "position.ReadValue()", "cursorWorldPoint");
+                            // else
+                            // {
+                            //     int indexOfPeriod = outputLine.IndexOf('.', indexOfCurrentMouse + CURRENT_MOUSE_INDICATOR.Length);
+                            //     string button = outputLine.SubstringStartEnd(indexOfCurrentMouse + CURRENT_MOUSE_INDICATOR.Length, indexOfPeriod);
+                            //     string key = "";
+                            //     if (button == "leftButton")
+                            //         key = "LeftMouseButton";
+                            //     else if (button == "rightButton")
+                            //         key = "RightMouseButton";
+                            //     int indexOfEndOfClauseAfterButton = outputLine.IndexOfAny(new char[] { '.', ' ', ';', ')' }, indexOfPeriod + 1);
+                            //     string clauseAfterButton = outputLine.SubstringStartEnd(indexOfPeriod + 1, indexOfEndOfClauseAfterButton);
+                            //     if (clauseAfterButton == "isPressed")
+                            //         outputLine = outputLine.Replace(CURRENT_MOUSE_INDICATOR + button + '.' + clauseAfterButton, "UGameplayStatics." + CONSTANT_INDICATOR + "GetPlayerController(GetWorld(), 0)." + POINTER_INDICATOR + "IsInputKeyDown(EKeys." + CONSTANT_INDICATOR + key + ")");
+                            // }
+                        }
+                    }
                 }
                 outputLine = outputLine.Replace(" : MonoBehaviour", ""); // TODO: Make this work with interfaces
                 outputLines.Add(outputLine);
