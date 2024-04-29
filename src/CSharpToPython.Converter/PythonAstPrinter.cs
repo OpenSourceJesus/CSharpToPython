@@ -14,7 +14,7 @@ namespace CSharpToPython {
         static Dictionary<string, string> typeFilePathsDict = new Dictionary<string, string>();
         static Dictionary<string, string> variablesTypesDict = new Dictionary<string, string>();
         const string CLASS_MEMBER_VARIABLE_INDICATOR = "#💠";
-        const string TYPE_AND_FILE_PATH_SEPERATOR = "🌰";
+        // const string TYPE_AND_FILE_PATH_SEPERATOR = "🌰";
 
         public static string PrintPythonAst(PyAst.Node node) {
             // string[] typeInfoFileLines = File.ReadAllLines("/tmp/Type Info");
@@ -98,7 +98,7 @@ namespace CSharpToPython {
             PyAst.CallExpression callExpression = node.Left as PyAst.CallExpression;
             if (callExpression != null)
                 Console.WriteLine("WOW3" + callExpression.Target);
-            return $"({Visit(node.Left)} {operatorText} {Visit(node.Right)})";
+            return $"{Visit(node.Left)} {operatorText} {Visit(node.Right)}";
         }
         public string Visit(PyAst.CallExpression node) {
             string output = $"{Visit(node.Target)}({string.Join(", ", node.Args.Select(a => Visit(a))) })";
@@ -135,6 +135,12 @@ namespace CSharpToPython {
                 return $"\"{ rawString }\"";
             }
             switch (node.Value) {
+                case float val:
+                    if (Math.Truncate(val) == val) {
+                        // If we don't do this, the double value 1.0 will be output as integer 1
+                        return val.ToString("0.0");
+                    }
+                    return node.Value.ToString();
                 case double val:
                     if (Math.Truncate(val) == val) {
                         // If we don't do this, the double value 1.0 will be output as integer 1
@@ -190,7 +196,7 @@ namespace CSharpToPython {
             //     string[] typeNameAndFilePath = typeFilePath.Split(TYPE_AND_FILE_PATH_SEPERATOR);
                 
             // }
-            // if (node.Name == "NagetiveInfinity")
+            // if (node.Name == "NegativeInfinity")
             return node.Name;
         }
         public string Visit(PyAst.OrExpression node) => $"({Visit(node.Left)} or {Visit(node.Right)})";

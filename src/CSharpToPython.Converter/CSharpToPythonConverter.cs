@@ -250,7 +250,8 @@ namespace CSharpToPython {
                         convertedTypeName = "int";
                         break;
                     }
-                    throw new NotImplementedException($"Predefined type {node} not implemented");
+                    else
+                        throw new NotImplementedException($"Predefined type {node} not implemented");
             }
             return new PyAst.NameExpression(convertedTypeName);
         }
