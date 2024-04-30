@@ -73,7 +73,7 @@ namespace CSharpToPython {
                     outputLine = outputLine.Replace("Time.deltaTime", "UGameplayStatics." + CONSTANT_INDICATOR + "GetWorldDeltaSeconds(GetWorld())");
                     outputLine = outputLine.Replace("Mathf.Sin", "FMath." + CONSTANT_INDICATOR + "Sin");
                     outputLine = outputLine.Replace("Mathf.Cos", "FMath." + CONSTANT_INDICATOR + "Cos");
-                    outputLine = outputLine.Replace("Vector2.right", "FVector." + CONSTANT_INDICATOR + "XAxisVector");
+                    outputLine = outputLine.Replace("Vector3.right", "FVector." + CONSTANT_INDICATOR + "XAxisVector");
                     outputLine = outputLine.Replace("Vector3.forward", "FVector." + CONSTANT_INDICATOR + "YAxisVector");
                     outputLine = outputLine.Replace("Mathf.Atan2", "UKismetMathLibrary." + CONSTANT_INDICATOR + "Atan2");
                     int indexOfInstantiate = outputLine.IndexOf(INSTANTIATE_INDICATOR);
@@ -105,7 +105,7 @@ namespace CSharpToPython {
                     outputLine = outputLine.Replace("transform.position", "GetActorLocation()");
                     outputLine = outputLine.Replace("transform.rotation", "GetActorRotation()");
                     outputLine = outputLine.Replace("transform.up", "GetActorRightVector()");
-                    outputLine = outputLine.Replace("Vector2.zero", "FVector." + CONSTANT_INDICATOR + "ZeroVector");
+                    outputLine = outputLine.Replace("Vector3.zero", "FVector." + CONSTANT_INDICATOR + "ZeroVector");
                     outputLine = outputLine.Replace(".x", ".X");
                     outputLine = outputLine.Replace(".y", ".Z");
                     outputLine = outputLine.Replace(".z", ".Y");
@@ -145,7 +145,7 @@ namespace CSharpToPython {
                                 int indexOfPeriod = outputLine.IndexOf('.', indexOfCurrentMouse + CURRENT_MOUSE_INDICATOR.Length);
                                 string button = outputLine.SubstringStartEnd(indexOfCurrentMouse + CURRENT_MOUSE_INDICATOR.Length, indexOfPeriod);
                                 string key = "";
-                                if (button == "leftButton")
+                                if (button == "leffButton")
                                     key = "LeftMouseButton";
                                 else if (button == "rightButton")
                                     key = "RightMouseButton";
@@ -264,7 +264,10 @@ namespace CSharpToPython {
             }
             convertedCode = convertedCode.Replace("from", "from_");
             foreach (string member in CSharpToPythonConvert.membersToAdd)
+            {
                 convertedCode += member + '\n';
+                Console.WriteLine("WOWOW" + member);
+            }
             convertedCode = convertedCode.Replace("FFTransform", "FTransform");
             UnityToUnreal.pythonFileContents = convertedCode;
             UnityToBevy.pythonFileContents = convertedCode;

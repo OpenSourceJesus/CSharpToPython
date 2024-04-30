@@ -756,8 +756,19 @@ namespace CSharpToPython {
                 if (memberDeclarationSyntax.IsKind(CSharpSyntaxKind.FieldDeclaration))
                 {
                     SyntaxTree tree = CSharpSyntaxTree.ParseText("" + memberDeclarationSyntax);
-                    ConvertSyntaxNode (tree.GetRoot());
+                    memberToAddName = "";
+                    memberToAddTypeSetter = "";
                     memberToAddValueSetter = "";
+                    ConvertSyntaxNode (tree.GetRoot());
+                    string value = memberToAddValueSetter.Substring(memberToAddValueSetter.IndexOf('=') + 1);
+                    value = value.Replace(" ", "");
+                    if (value != "" && value[value.Length - 1] == 'f')
+                    {
+                        string _value = value.Remove(value.Length - 1);
+                        float f;
+                        if (float.TryParse(_value, out f))
+                            memberToAddValueSetter = memberToAddValueSetter.Remove(memberToAddValueSetter.Length - 1);
+                    }
                     membersToAdd.Add(memberToAddName + memberToAddTypeSetter + memberToAddValueSetter);
                 }
             }

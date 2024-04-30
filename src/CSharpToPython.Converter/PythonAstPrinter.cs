@@ -92,12 +92,6 @@ namespace CSharpToPython {
                 default:
                     throw new NotImplementedException($"Printing of operator {node.Operator} not implemented");
             }
-            // string type;
-            // if (variablesTypesDict.TryGetValue("" + Visit(node.Left), out type))
-            //     return $"({Visit(node.Left)} {operatorText} ({type}) {Visit(node.Right)})";
-            PyAst.CallExpression callExpression = node.Left as PyAst.CallExpression;
-            if (callExpression != null)
-                Console.WriteLine("WOW3" + callExpression.Target);
             return $"{Visit(node.Left)} {operatorText} {Visit(node.Right)}";
         }
         public string Visit(PyAst.CallExpression node) {
@@ -266,8 +260,6 @@ namespace CSharpToPython {
                 foreach (PyAst.MemberExpression expression in node.Left)
                     stringBuilder.Insert(0, CLASS_MEMBER_VARIABLE_INDICATOR + expression.Name + ": " + setTo + '\n');
             }
-            // variablesTypesDict.Add("" + node.Left, node.Value.GetType().Name);
-            // Console.WriteLine("WOWOW" + node.Left + " " + node.Right.Value.GetType().Name);
         }
         public void Visit(PyAst.AugmentedAssignStatement node) {
             string op;
