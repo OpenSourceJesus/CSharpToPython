@@ -145,7 +145,7 @@ namespace CSharpToPython {
                                 int indexOfPeriod = outputLine.IndexOf('.', indexOfCurrentMouse + CURRENT_MOUSE_INDICATOR.Length);
                                 string button = outputLine.SubstringStartEnd(indexOfCurrentMouse + CURRENT_MOUSE_INDICATOR.Length, indexOfPeriod);
                                 string key = "";
-                                if (button == "leffButton")
+                                if (button == "leftButton")
                                     key = "LeftMouseButton";
                                 else if (button == "rightButton")
                                     key = "RightMouseButton";
