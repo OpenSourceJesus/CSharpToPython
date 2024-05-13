@@ -74,7 +74,8 @@ namespace CSharpToPython {
                     outputLine = outputLine.Replace("Time.deltaTime", "UGameplayStatics." + CONSTANT_INDICATOR + "GetWorldDeltaSeconds(GetWorld())");
                     outputLine = outputLine.Replace("Mathf.Sin", "FMath." + CONSTANT_INDICATOR + "Sin");
                     outputLine = outputLine.Replace("Mathf.Cos", "FMath." + CONSTANT_INDICATOR + "Cos");
-                    outputLine = outputLine.Replace("Vector3.right", "FVector." + CONSTANT_INDICATOR + "XAxisVector");
+                    outputLine = outputLine.Replace("Vector3.right", "-FVector." + CONSTANT_INDICATOR + "XAxisVector");
+                    outputLine = outputLine.Replace("Vector3.left", "FVector." + CONSTANT_INDICATOR + "XAxisVector");
                     outputLine = outputLine.Replace("Vector3.forward", "FVector." + CONSTANT_INDICATOR + "YAxisVector");
                     outputLine = outputLine.Replace("Mathf.Atan2", "UKismetMathLibrary." + CONSTANT_INDICATOR + "Atan2");
                     int indexOfInstantiate = outputLine.IndexOf(INSTANTIATE_INDICATOR);
@@ -170,11 +171,11 @@ namespace CSharpToPython {
                             outputLine = outputLine.Replace(outputLine, "Utils." + CONSTANT_INDICATOR + "GetActor(" + whatToFind + ", GetWorld())");
                         }
                     }
-                    foreach (string screenToWorldPoiIndicator in SCREEN_TO_WORLD_POINT_INDICATORS)
+                    foreach (string screenToWorldPointIndicator in SCREEN_TO_WORLD_POINT_INDICATORS)
                     {
-                        int screenToWorldPoiIndictorIndex = outputLine.IndexOf(screenToWorldPoiIndicator);
-                        if (screenToWorldPoiIndictorIndex != -1)
-                            outputLine = outputLine.Replace(screenToWorldPoiIndicator, "Utils." + CONSTANT_INDICATOR + "ScreenToWorldPoint(GetWorld(), ");
+                        int screenToWorldPointIndicatorIndex = outputLine.IndexOf(screenToWorldPointIndicator);
+                        if (screenToWorldPointIndicatorIndex != -1)
+                            outputLine = outputLine.Replace(screenToWorldPointIndicator, "Utils." + CONSTANT_INDICATOR + "ScreenToWorldPoint(GetWorld(), ");
                     }
                     int indexOfTrsUp = outputLine.IndexOf("transform.up");
                     if (indexOfTrsUp != -1)
@@ -228,7 +229,7 @@ namespace CSharpToPython {
                         {
                             string command = outputLine.Substring(indexOfCurrentMouse + CURRENT_MOUSE_INDICATOR.Length);
                             if (command.StartsWith("position.ReadValue()"))
-                                outputLine = outputLine.Replace(CURRENT_MOUSE_INDICATOR + "position.ReadValue()", "cursorWorldPoint");
+                                outputLine = outputLine.Replace(CURRENT_MOUSE_INDICATOR + "position.ReadValue()", "cursorPoint");
                             else
                             {
                                 int indexOfPeriod = outputLine.IndexOf('.', indexOfCurrentMouse + CURRENT_MOUSE_INDICATOR.Length);
@@ -243,6 +244,16 @@ namespace CSharpToPython {
                                 if (clauseAfterButton == "isPressed")
                                     outputLine = outputLine.Replace(CURRENT_MOUSE_INDICATOR + button + '.' + clauseAfterButton, "mouseButtons.pressed(MouseButton." + CONSTANT_INDICATOR + newButton + ")");
                             }
+                        }
+                    }
+                    foreach (string screenToWorldPointIndicator in SCREEN_TO_WORLD_POINT_INDICATORS)
+                    {
+                        int screenToWorldPointIndicatorIndex = outputLine.IndexOf(screenToWorldPointIndicator);
+                        if (screenToWorldPointIndicatorIndex != -1)
+                        {
+                            int indexOfRightParenthesis = outputLine.IndexOfMatchingRightParenthesis(screenToWorldPointIndicatorIndex + screenToWorldPointIndicator.Length);
+                            string screenPoint = outputLine.SubstringStartEnd(screenToWorldPointIndicatorIndex + screenToWorldPointIndicator.Length, indexOfRightParenthesis);
+                            outputLine = outputLine.Replace(screenToWorldPointIndicator + screenPoint + ')', "GetScreenToWorldPoint(" + screenPoint + ", screenToWorldPointEvent)");
                         }
                     }
                 }
