@@ -13,6 +13,7 @@ namespace CSharpToPython {
         const string CONSTANT_INDICATOR = "const";
         const string POINTER_INDICATOR = "ptr";
         const string INSTANTIATE_INDICATOR = "Instantiate(";
+        const string GAME_OBJECT_FIND_INDICATOR = "GameObject.Find(";
         // const string RESOURCES_INDICATOR = "Resources.";
 
         public static void Example() {
@@ -86,7 +87,7 @@ namespace CSharpToPython {
                         int indexOfComma2 = outputLine.IndexOf(',', indexOfComma + 1);
                         string argument2 = outputLine.SubstringStartEnd(indexOfComma + 1, indexOfComma2);
                         replaceWith += ", " + argument2;
-                        int indexOfParenthesis = outputLine.GetIndexOfMatchingParenthesis(indexOfInstantiate + INSTANTIATE_INDICATOR.Length - 1);
+                        int indexOfParenthesis = outputLine.IndexOfMatchingRightParenthesis(indexOfInstantiate + INSTANTIATE_INDICATOR.Length - 1);
                         string argument3 = outputLine.SubstringStartEnd(indexOfComma2 + 1, indexOfParenthesis);
                         replaceWith += ", " + argument3 + ')';
                         outputLine = outputLine.Replace(outputLine.SubstringStartEnd(indexOfInstantiate, indexOfParenthesis), replaceWith);
@@ -154,6 +155,19 @@ namespace CSharpToPython {
                                 if (clauseAfterButton == "isPressed")
                                     outputLine = outputLine.Replace(CURRENT_MOUSE_INDICATOR + button + '.' + clauseAfterButton, "UGameplayStatics." + CONSTANT_INDICATOR + "GetPlayerController(GetWorld(), 0)." + POINTER_INDICATOR + "IsInputKeyDown(EKeys." + CONSTANT_INDICATOR + key + ")");
                             }
+                        }
+                    }
+                    int indexOfGameObjectFind = 0;
+                    while (indexOfGameObjectFind != -1)
+                    {
+                        indexOfGameObjectFind = outputLine.IndexOf(GAME_OBJECT_FIND_INDICATOR);
+                        if (indexOfGameObjectFind != -1)
+                        {
+                            int indexOfRightParenthesis = outputLine.IndexOfMatchingRightParenthesis(indexOfGameObjectFind + GAME_OBJECT_FIND_INDICATOR.Length);
+                            string gameObjectFind = outputLine.SubstringStartEnd(indexOfGameObjectFind, indexOfRightParenthesis);
+                            Console.WriteLine("YAY" + gameObjectFind);
+                            string whatToFind = gameObjectFind.SubstringStartEnd(GAME_OBJECT_FIND_INDICATOR.Length, gameObjectFind.Length - 2);
+                            outputLine = outputLine.Replace(outputLine, "Utils." + CONSTANT_INDICATOR + "GetActor(" + whatToFind + ", GetWorld())");
                         }
                     }
                     foreach (string screenToWorldPoiIndicator in SCREEN_TO_WORLD_POINT_INDICATORS)
@@ -273,7 +287,20 @@ namespace CSharpToPython {
             UnityToBevy.pythonFileContents = convertedCode;
             UnityToGodot.pythonFileContents = convertedCode;
             if (Translator.instance.GetType().Name == "UnityToBevy")
-                File.WriteAllText(Environment.CurrentDirectory + "/src/main.py", convertedCode);
+            {
+                string[] dataLines = File.ReadAllLines("/tmp/Unity2Many Data (UnityToBevy)");
+                string outputPath = "";
+                foreach (string data in dataLines)
+                {
+                    string outputIndicator = "output=";
+                    if (data.StartsWith(outputIndicator))
+                    {
+                        outputPath = data.Substring(outputIndicator.Length);
+                        break;
+                    }
+                }
+                File.WriteAllText(outputPath + "/src/main.py", convertedCode);
+            }
             var scope = engine.Engine.CreateScope();
             var source = engine.Engine.CreateScriptSourceFromString(convertedCode, Microsoft.Scripting.SourceCodeKind.AutoDetect);
             try
