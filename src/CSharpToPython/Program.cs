@@ -307,6 +307,7 @@ namespace CSharpToPython {
                     if (data.StartsWith(outputIndicator))
                     {
                         outputPath = data.Substring(outputIndicator.Length);
+                        outputPath = outputPath.Replace("~", Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
                         break;
                     }
                 }
