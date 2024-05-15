@@ -81,7 +81,7 @@ namespace CSharpToPython {
                     int indexOfInstantiate = outputLine.IndexOf(INSTANTIATE_INDICATOR);
                     if (indexOfInstantiate != -1)
                     {
-                        string replaceWith = "SpawnActor(";
+                        string replaceWith = "Utils." + CONSTANT_INDICATOR + "SpawnActor(GetWorld(), ";
                         int indexOfComma = outputLine.IndexOf(',', indexOfInstantiate);
                         string argument1 = outputLine.SubstringStartEnd(indexOfInstantiate + INSTANTIATE_INDICATOR.Length, indexOfComma);
                         replaceWith += argument1;
