@@ -81,7 +81,8 @@ namespace CSharpToPython {
                     int indexOfInstantiate = outputLine.IndexOf(INSTANTIATE_INDICATOR);
                     if (indexOfInstantiate != -1)
                     {
-                        string replaceWith = "Utils." + CONSTANT_INDICATOR + "SpawnActor(GetWorld(), ";
+                        // string replaceWith = "Utils." + CONSTANT_INDICATOR + "SpawnActor(GetWorld(), ";
+                        string replaceWith = "SpawnActor(";
                         int indexOfComma = outputLine.IndexOf(',', indexOfInstantiate);
                         string argument1 = outputLine.SubstringStartEnd(indexOfInstantiate + INSTANTIATE_INDICATOR.Length, indexOfComma);
                         replaceWith += argument1;
@@ -243,6 +244,21 @@ namespace CSharpToPython {
                                 string clauseAfterButton = outputLine.SubstringStartEnd(indexOfPeriod + 1, indexOfEndOfClauseAfterButton);
                                 if (clauseAfterButton == "isPressed")
                                     outputLine = outputLine.Replace(CURRENT_MOUSE_INDICATOR + button + '.' + clauseAfterButton, "mouseButtons.pressed(MouseButton." + CONSTANT_INDICATOR + newButton + ")");
+                            }
+                        }
+                    }
+                    int indexOfDestroy = 0;
+                    while (indexOfDestroy != -1)
+                    {
+                        string destroyIndicator = "Destroy(";
+                        indexOfDestroy = outputLine.IndexOf(destroyIndicator);
+                        if (indexOfDestroy != -1)
+                        {
+                            int indexOfRightParenthesis = outputLine.IndexOfMatchingRightParenthesis(indexOfDestroy + destroyIndicator.Length);
+                            string whatToDestroy = outputLine.SubstringStartEnd(indexOfDestroy, indexOfRightParenthesis);
+                            if (whatToDestroy == "gameObject" || whatToDestroy == "GetComponent<GameObject>()")
+                            {
+                                // outputLine = outputLine.Replace(destroyIndicator + whatToDestroy + ')', "commands.entity(sceneEntity).remove<");
                             }
                         }
                     }
