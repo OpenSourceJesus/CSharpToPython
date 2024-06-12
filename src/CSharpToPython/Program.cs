@@ -188,15 +188,37 @@ namespace CSharpToPython {
                         string rotatorText = "UKismetMathLibrary." + CONSTANT_INDICATOR + "MakeRotFromZ(" + facingText + ")";
                         outputLine = outputLine.Replace(statement, "SetActorRotation(" + rotatorText + ", ETeleportType." + CONSTANT_INDICATOR + "TeleportPhysics);");
                     }
-                    int indexOfTrsEulerAngles = outputLine.IndexOf("transform.eulerAngles");
+                    string trsEulerAnglesIndicator = "transform.eulerAngles";
+                    int indexOfTrsEulerAngles = outputLine.IndexOf(trsEulerAnglesIndicator);
                     if (indexOfTrsEulerAngles != -1)
                     {
                         int indexOfStatementEnd = outputLine.IndexOf(';', indexOfTrsEulerAngles);
                         string statement = outputLine.SubstringStartEnd(indexOfTrsEulerAngles, indexOfStatementEnd);
                         int indexOfEquals = outputLine.IndexOf('=', indexOfTrsEulerAngles);
-                        string facingText = outputLine.SubstringStartEnd(indexOfEquals + 1, indexOfStatementEnd);
-                        string rotatorText = "FQuat." + CONSTANT_INDICATOR + "MakeFromEuler(" + facingText + ").Rotator()";
-                        outputLine = outputLine.Replace(statement, "SetActorRotation(" + rotatorText + ", ETeleportType." + CONSTANT_INDICATOR + "TeleportPhysics);");
+                        string textBetweenTrsEulerAnglesAndEquals = outputLine.SubstringStartEnd(indexOfTrsEulerAngles + trsEulerAnglesIndicator.Length, indexOfEquals);
+                        if (textBetweenTrsEulerAnglesAndEquals == "" || string.IsNullOrWhiteSpace(textBetweenTrsEulerAnglesAndEquals))
+                        {
+                            outputLine = outputLine.Remove(indexOfTrsEulerAngles, trsEulerAnglesIndicator.Length);
+                            outputLine = outputLine.Insert(indexOfTrsEulerAngles, "GetActorRotation().Euler()");
+                        }
+                        else if (textBetweenTrsEulerAnglesAndEquals.Trim() == "+")
+                        {
+                            int indexOfSemicolon = outputLine.IndexOf(';', indexOfEquals);
+                            string valueAfterEquals = outputLine.SubstringStartEnd(indexOfEquals + 1, indexOfSemicolon);
+                            outputLine = outputLine.Replace(trsEulerAnglesIndicator + textBetweenTrsEulerAnglesAndEquals + '=' + valueAfterEquals, "AddActorWorldRotation(FRotator." + CONSTANT_INDICATOR + "MakeFromEuler(" + valueAfterEquals + "))");
+                        }
+                        else if (textBetweenTrsEulerAnglesAndEquals.Trim() == "-")
+                        {
+                            int indexOfSemicolon = outputLine.IndexOf(';', indexOfEquals);
+                            string valueAfterEquals = outputLine.SubstringStartEnd(indexOfEquals + 1, indexOfSemicolon);
+                            outputLine = outputLine.Replace(trsEulerAnglesIndicator + textBetweenTrsEulerAnglesAndEquals + '=' + valueAfterEquals, "AddActorWorldRotation(FRotator." + CONSTANT_INDICATOR + "MakeFromEuler(-" + valueAfterEquals + "))");
+                        }
+                        else
+                        {
+                            string facingText = outputLine.SubstringStartEnd(indexOfEquals + 1, indexOfStatementEnd);
+                            string rotatorText = "FQuat." + CONSTANT_INDICATOR + "MakeFromEuler(" + facingText + ").Rotator()";
+                            outputLine = outputLine.Replace(statement, "SetActorRotation(" + rotatorText + ", ETeleportType." + CONSTANT_INDICATOR + "TeleportPhysics);");
+                        }
                     }
                     outputLine = outputLine.Replace("Transform", "FTransform");
                 }
