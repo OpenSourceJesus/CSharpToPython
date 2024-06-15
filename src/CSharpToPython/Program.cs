@@ -70,14 +70,7 @@ namespace CSharpToPython {
                             
                     //     }
                     // }
-                    outputLine = outputLine.Replace("Time.time", "UGameplayStatics." + CONSTANT_INDICATOR + "GetRealTimeSeconds(GetWorld())");
-                    outputLine = outputLine.Replace("Time.deltaTime", "UGameplayStatics." + CONSTANT_INDICATOR + "GetWorldDeltaSeconds(GetWorld())");
-                    outputLine = outputLine.Replace("Mathf.Sin", "FMath." + CONSTANT_INDICATOR + "Sin");
-                    outputLine = outputLine.Replace("Mathf.Cos", "FMath." + CONSTANT_INDICATOR + "Cos");
-                    outputLine = outputLine.Replace("Vector3.right", "-FVector." + CONSTANT_INDICATOR + "XAxisVector");
-                    outputLine = outputLine.Replace("Vector3.left", "FVector." + CONSTANT_INDICATOR + "XAxisVector");
-                    outputLine = outputLine.Replace("Vector3.forward", "FVector." + CONSTANT_INDICATOR + "YAxisVector");
-                    outputLine = outputLine.Replace("Mathf.Atan2", "UKismetMathLibrary." + CONSTANT_INDICATOR + "Atan2");
+                    outputLine = Translate(outputLine);
                     int indexOfInstantiate = outputLine.IndexOf(INSTANTIATE_INDICATOR);
                     if (indexOfInstantiate != -1)
                     {
@@ -105,15 +98,6 @@ namespace CSharpToPython {
                             outputLine = "TeleportTo(" + position + ", GetActorRotation(), true, true);";
                         }
                     }
-                    outputLine = outputLine.Replace("transform.position", "GetActorLocation()");
-                    outputLine = outputLine.Replace("transform.rotation", "GetActorRotation()");
-                    outputLine = outputLine.Replace("transform.up", "GetActorRightVector()");
-                    outputLine = outputLine.Replace("Vector3.zero", "FVector." + CONSTANT_INDICATOR + "ZeroVector");
-                    outputLine = outputLine.Replace(".x", ".X");
-                    outputLine = outputLine.Replace(".y", ".Z");
-                    outputLine = outputLine.Replace(".z", ".Y");
-                    outputLine = outputLine.Replace("Vector2", "FVector2D");
-                    outputLine = outputLine.Replace("Vector3", "FVector");
                     int indexOfCurrentKeyboard = 0;
                     while (indexOfCurrentKeyboard != -1)
                     {
@@ -195,29 +179,37 @@ namespace CSharpToPython {
                         int indexOfStatementEnd = outputLine.IndexOf(';', indexOfTrsEulerAngles);
                         string statement = outputLine.SubstringStartEnd(indexOfTrsEulerAngles, indexOfStatementEnd);
                         int indexOfEquals = outputLine.IndexOf('=', indexOfTrsEulerAngles);
-                        string textBetweenTrsEulerAnglesAndEquals = outputLine.SubstringStartEnd(indexOfTrsEulerAngles + trsEulerAnglesIndicator.Length, indexOfEquals);
-                        if (textBetweenTrsEulerAnglesAndEquals == "" || string.IsNullOrWhiteSpace(textBetweenTrsEulerAnglesAndEquals))
+                        if (indexOfEquals != -1)
                         {
-                            outputLine = outputLine.Remove(indexOfTrsEulerAngles, trsEulerAnglesIndicator.Length);
-                            outputLine = outputLine.Insert(indexOfTrsEulerAngles, "GetActorRotation().Euler()");
-                        }
-                        else if (textBetweenTrsEulerAnglesAndEquals.Trim() == "+")
-                        {
-                            int indexOfSemicolon = outputLine.IndexOf(';', indexOfEquals);
-                            string valueAfterEquals = outputLine.SubstringStartEnd(indexOfEquals + 1, indexOfSemicolon);
-                            outputLine = outputLine.Replace(trsEulerAnglesIndicator + textBetweenTrsEulerAnglesAndEquals + '=' + valueAfterEquals, "AddActorWorldRotation(FRotator." + CONSTANT_INDICATOR + "MakeFromEuler(" + valueAfterEquals + "))");
-                        }
-                        else if (textBetweenTrsEulerAnglesAndEquals.Trim() == "-")
-                        {
-                            int indexOfSemicolon = outputLine.IndexOf(';', indexOfEquals);
-                            string valueAfterEquals = outputLine.SubstringStartEnd(indexOfEquals + 1, indexOfSemicolon);
-                            outputLine = outputLine.Replace(trsEulerAnglesIndicator + textBetweenTrsEulerAnglesAndEquals + '=' + valueAfterEquals, "AddActorWorldRotation(FRotator." + CONSTANT_INDICATOR + "MakeFromEuler(-" + valueAfterEquals + "))");
+                            string textBetweenTrsEulerAnglesAndEquals = outputLine.SubstringStartEnd(indexOfTrsEulerAngles + trsEulerAnglesIndicator.Length, indexOfEquals);
+                            if (textBetweenTrsEulerAnglesAndEquals == "" || string.IsNullOrWhiteSpace(textBetweenTrsEulerAnglesAndEquals))
+                            {
+                                string facingText = outputLine.SubstringStartEnd(indexOfEquals + 1, indexOfStatementEnd);
+                                string rotatorText = "FQuat." + CONSTANT_INDICATOR + "MakeFromEuler(" + facingText + ").Rotator()";
+                                outputLine = outputLine.Replace(statement, "SetActorRotation(" + rotatorText + ", ETeleportType." + CONSTANT_INDICATOR + "TeleportPhysics);");
+                            }
+                            else if (textBetweenTrsEulerAnglesAndEquals.Trim() == "+")
+                            {
+                                int indexOfSemicolon = outputLine.IndexOf(';', indexOfEquals);
+                                string valueAfterEquals = outputLine.SubstringStartEnd(indexOfEquals + 1, indexOfSemicolon);
+                                outputLine = outputLine.Replace(trsEulerAnglesIndicator + textBetweenTrsEulerAnglesAndEquals + '=' + valueAfterEquals, "AddActorWorldRotation(FRotator." + CONSTANT_INDICATOR + "MakeFromEuler(" + Translate(valueAfterEquals) + "))");
+                            }
+                            else if (textBetweenTrsEulerAnglesAndEquals.Trim() == "-")
+                            {
+                                int indexOfSemicolon = outputLine.IndexOf(';', indexOfEquals);
+                                string valueAfterEquals = outputLine.SubstringStartEnd(indexOfEquals + 1, indexOfSemicolon);
+                                outputLine = outputLine.Replace(trsEulerAnglesIndicator + textBetweenTrsEulerAnglesAndEquals + '=' + valueAfterEquals, "AddActorWorldRotation(FRotator." + CONSTANT_INDICATOR + "MakeFromEuler(-" + Translate(valueAfterEquals) + "))");
+                            }
+                            else
+                            {
+                                outputLine = outputLine.Remove(indexOfTrsEulerAngles, trsEulerAnglesIndicator.Length);
+                                outputLine = outputLine.Insert(indexOfTrsEulerAngles, "GetActorRotation().Euler()");
+                            }
                         }
                         else
                         {
-                            string facingText = outputLine.SubstringStartEnd(indexOfEquals + 1, indexOfStatementEnd);
-                            string rotatorText = "FQuat." + CONSTANT_INDICATOR + "MakeFromEuler(" + facingText + ").Rotator()";
-                            outputLine = outputLine.Replace(statement, "SetActorRotation(" + rotatorText + ", ETeleportType." + CONSTANT_INDICATOR + "TeleportPhysics);");
+                            outputLine = outputLine.Remove(indexOfTrsEulerAngles, trsEulerAnglesIndicator.Length);
+                            outputLine = outputLine.Insert(indexOfTrsEulerAngles, "GetActorRotation().Euler()");
                         }
                     }
                     outputLine = outputLine.Replace("Transform", "FTransform");
@@ -301,6 +293,30 @@ namespace CSharpToPython {
             csharpCode = string.Join('\n', outputLines);
             var csharpAst = Microsoft.CodeAnalysis.CSharp.SyntaxFactory.ParseSyntaxTree(csharpCode).GetRoot();
             return ConvertAndRunCode(engine, csharpAst);
+        }
+
+        static string Translate (string input)
+        {
+            input = input.Replace("Time.time", "UGameplayStatics." + CONSTANT_INDICATOR + "GetRealTimeSeconds(GetWorld())");
+            input = input.Replace("Time.deltaTime", "UGameplayStatics." + CONSTANT_INDICATOR + "GetWorldDeltaSeconds(GetWorld())");
+            input = input.Replace("Mathf.Sin", "FMath." + CONSTANT_INDICATOR + "Sin");
+            input = input.Replace("Mathf.Cos", "FMath." + CONSTANT_INDICATOR + "Cos");
+            input = input.Replace("Vector3.right", "-FVector." + CONSTANT_INDICATOR + "XAxisVector");
+            input = input.Replace("Vector3.left", "FVector." + CONSTANT_INDICATOR + "XAxisVector");
+            input = input.Replace("Vector3.forward", "FVector." + CONSTANT_INDICATOR + "YAxisVector");
+            input = input.Replace("Vector3.up", "FVector." + CONSTANT_INDICATOR + "ZAxisVector");
+            input = input.Replace("Vector3.down", "-FVector." + CONSTANT_INDICATOR + "ZAxisVector");
+            input = input.Replace("Mathf.Atan2", "UKismetMathLibrary." + CONSTANT_INDICATOR + "Atan2");
+            input = input.Replace("transform.position", "GetActorLocation()");
+            input = input.Replace("transform.rotation", "GetActorRotation()");
+            input = input.Replace("transform.up", "GetActorRightVector()");
+            input = input.Replace("Vector3.zero", "FVector." + CONSTANT_INDICATOR + "ZeroVector");
+            input = input.Replace(".x", ".X");
+            input = input.Replace(".y", ".Z");
+            input = input.Replace(".z", ".Y");
+            input = input.Replace("Vector2", "FVector2D");
+            input = input.Replace("Vector3", "FVector");
+            return input;
         }
 
         private static object ConvertAndRunCode(
