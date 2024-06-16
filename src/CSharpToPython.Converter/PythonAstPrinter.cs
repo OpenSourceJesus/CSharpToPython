@@ -257,8 +257,11 @@ namespace CSharpToPython {
             AppendLineWithIndentation($"{VisitExpressionsList(node.Left)} = {setTo}");
             if (node.Left[0] is PyAst.MemberExpression)
             {
-                foreach (PyAst.MemberExpression expression in node.Left)
-                    stringBuilder.Insert(0, CLASS_MEMBER_VARIABLE_INDICATOR + expression.Name + ": " + setTo + '\n');
+                if (Translator.instance.GetType().Name != "CSToPython")
+                {
+                    foreach (PyAst.MemberExpression expression in node.Left)
+                        stringBuilder.Insert(0, CLASS_MEMBER_VARIABLE_INDICATOR + expression.Name + ": " + setTo + '\n');
+                }
             }
         }
         public void Visit(PyAst.AugmentedAssignStatement node) {

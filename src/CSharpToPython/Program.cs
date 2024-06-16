@@ -287,7 +287,7 @@ namespace CSharpToPython {
                         }
                     }
                 }
-                outputLine = outputLine.Replace(" : MonoBehaviour", ""); // TODO: Make this work with interfaces
+                // outputLine = outputLine.Replace(" : MonoBehaviour", ""); // TODO: Make this work with interfaces
                 outputLines.Add(outputLine);
             }
             csharpCode = string.Join('\n', outputLines);
@@ -341,32 +341,35 @@ namespace CSharpToPython {
                 //     convertedCode += $"\r\n{lastClassDef.Name}()";
                 // }
             }
-            convertedCode = convertedCode.Replace("from", "from_");
-            foreach (string member in CSharpToPythonConvert.membersToAdd)
+            if (Translator.instance.GetType().Name != "CSToPython")
             {
-                convertedCode += member + '\n';
-                Console.WriteLine("WOWOW" + member);
-            }
-            convertedCode = convertedCode.Replace("FFTransform", "FTransform");
-            UnityToUnreal.pythonFileContents = convertedCode;
-            UnityToBevy.pythonFileContents = convertedCode;
-            UnityToGodot.pythonFileContents = convertedCode;
-            if (Translator.instance.GetType().Name == "UnityToBevy")
-            {
-                string[] dataLines = File.ReadAllLines("/tmp/Unity2Many Data (UnityToBevy)");
-                string outputPath = "";
-                foreach (string data in dataLines)
+                convertedCode = convertedCode.Replace("from", "from_");
+                foreach (string member in CSharpToPythonConvert.membersToAdd)
                 {
-                    string outputIndicator = "output=";
-                    if (data.StartsWith(outputIndicator))
-                    {
-                        outputPath = data.Substring(outputIndicator.Length);
-                        outputPath = outputPath.Replace("~", Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
-                        break;
-                    }
+                    convertedCode += member + '\n';
+                    Console.WriteLine("WOWOW" + member);
                 }
-                File.WriteAllText(outputPath + "/src/main.py", convertedCode);
+                convertedCode = convertedCode.Replace("FFTransform", "FTransform");
+                Translator.pythonFileContents = convertedCode;
+                if (Translator.instance.GetType().Name == "UnityToBevy")
+                {
+                    string[] dataLines = File.ReadAllLines("/tmp/Unity2Many Data (UnityToBevy)");
+                    string outputPath = "";
+                    foreach (string data in dataLines)
+                    {
+                        string outputIndicator = "output=";
+                        if (data.StartsWith(outputIndicator))
+                        {
+                            outputPath = data.Substring(outputIndicator.Length);
+                            outputPath = outputPath.Replace("~", Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
+                            break;
+                        }
+                    }
+                    File.WriteAllText(outputPath + "/src/main.py", convertedCode);
+                }
             }
+            else
+                Translator.pythonFileContents = convertedCode;
             var scope = engine.Engine.CreateScope();
             var source = engine.Engine.CreateScriptSourceFromString(convertedCode, Microsoft.Scripting.SourceCodeKind.AutoDetect);
             try
