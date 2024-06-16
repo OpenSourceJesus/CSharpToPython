@@ -297,25 +297,67 @@ namespace CSharpToPython {
 
         static string Translate (string input)
         {
-            input = input.Replace("Time.time", "UGameplayStatics." + CONSTANT_INDICATOR + "GetRealTimeSeconds(GetWorld())");
-            input = input.Replace("Time.deltaTime", "UGameplayStatics." + CONSTANT_INDICATOR + "GetWorldDeltaSeconds(GetWorld())");
-            input = input.Replace("Mathf.Sin", "FMath." + CONSTANT_INDICATOR + "Sin");
-            input = input.Replace("Mathf.Cos", "FMath." + CONSTANT_INDICATOR + "Cos");
-            input = input.Replace("Vector3.right", "-FVector." + CONSTANT_INDICATOR + "XAxisVector");
-            input = input.Replace("Vector3.left", "FVector." + CONSTANT_INDICATOR + "XAxisVector");
-            input = input.Replace("Vector3.forward", "FVector." + CONSTANT_INDICATOR + "YAxisVector");
-            input = input.Replace("Vector3.up", "FVector." + CONSTANT_INDICATOR + "ZAxisVector");
-            input = input.Replace("Vector3.down", "-FVector." + CONSTANT_INDICATOR + "ZAxisVector");
-            input = input.Replace("Mathf.Atan2", "UKismetMathLibrary." + CONSTANT_INDICATOR + "Atan2");
-            input = input.Replace("transform.position", "GetActorLocation()");
-            input = input.Replace("transform.rotation", "GetActorRotation()");
-            input = input.Replace("transform.up", "GetActorRightVector()");
-            input = input.Replace("Vector3.zero", "FVector." + CONSTANT_INDICATOR + "ZeroVector");
-            input = input.Replace(".x", ".X");
-            input = input.Replace(".y", ".Z");
-            input = input.Replace(".z", ".Y");
-            input = input.Replace("Vector2", "FVector2D");
-            input = input.Replace("Vector3", "FVector");
+            if (Translator.instance.GetType().Name == "UnityToUnreal")
+            {
+                input = input.Replace("Time.time", "UGameplayStatics." + CONSTANT_INDICATOR + "GetRealTimeSeconds(GetWorld())");
+                input = input.Replace("Time.deltaTime", "UGameplayStatics." + CONSTANT_INDICATOR + "GetWorldDeltaSeconds(GetWorld())");
+                input = input.Replace("Mathf.Sin", "FMath." + CONSTANT_INDICATOR + "Sin");
+                input = input.Replace("Mathf.Cos", "FMath." + CONSTANT_INDICATOR + "Cos");
+                input = input.Replace("Vector3.right", "-FVector." + CONSTANT_INDICATOR + "XAxisVector");
+                input = input.Replace("Vector3.left", "FVector." + CONSTANT_INDICATOR + "XAxisVector");
+                input = input.Replace("Vector3.forward", "FVector." + CONSTANT_INDICATOR + "YAxisVector");
+                input = input.Replace("Vector3.up", "FVector." + CONSTANT_INDICATOR + "ZAxisVector");
+                input = input.Replace("Vector3.down", "-FVector." + CONSTANT_INDICATOR + "ZAxisVector");
+                input = input.Replace("Mathf.Atan2", "UKismetMathLibrary." + CONSTANT_INDICATOR + "Atan2");
+                input = input.Replace("transform.position", "GetActorLocation()");
+                input = input.Replace("transform.rotation", "GetActorRotation()");
+                input = input.Replace("transform.up", "GetActorRightVector()");
+                input = input.Replace("Vector3.zero", "FVector." + CONSTANT_INDICATOR + "ZeroVector");
+                input = input.Replace(".x", ".X");
+                input = input.Replace(".y", ".Z");
+                input = input.Replace(".z", ".Y");
+                input = input.Replace("Vector2", "FVector2D");
+                input = input.Replace("Vector3", "FVector");
+            }
+            else if (Translator.instance.GetType().Name == "UnityInBlender")
+            {
+                input = input.Replace("Time.deltaTime", "0.016666667");
+                input = input.Replace("Vector3.up", "mathutils.Vector((0, 0, 1))");
+                input = input.Replace("transform.eulerAngles", "self.rotation_euler");
+                string trsEulerAnglesIndicator = "self.rotation_euler";
+                string[] lines = input.Split('\n');
+                for (int i = 0; i < lines.Length; i ++)
+                {
+                    string line = lines[i];
+                    int indexOfTrsEulerAngles = line.IndexOf(trsEulerAnglesIndicator);
+                    if (indexOfTrsEulerAngles != -1)
+                    {
+                        string statement = line.Substring(indexOfTrsEulerAngles);
+                        int indexOfEquals = line.IndexOf('=', indexOfTrsEulerAngles);
+                        if (indexOfEquals != -1)
+                        {
+                            string textBetweenTrsEulerAnglesAndEquals = line.SubstringStartEnd(indexOfTrsEulerAngles + trsEulerAnglesIndicator.Length, indexOfEquals);
+                            if (textBetweenTrsEulerAnglesAndEquals == "" || string.IsNullOrWhiteSpace(textBetweenTrsEulerAnglesAndEquals))
+                            {
+                                string facingText = line.Substring(indexOfEquals + 1);
+                                line = line.Replace(statement, "self.rotation_euler = mathutils.Euler(" + facingText + ')');
+                            }
+                            else if (textBetweenTrsEulerAnglesAndEquals.Trim() == "+")
+                            {
+                                string valueAfterEquals = line.Substring(indexOfEquals + 1);
+                                line = line.Replace(trsEulerAnglesIndicator + textBetweenTrsEulerAnglesAndEquals + '=' + valueAfterEquals, "rotation_ = mathutils.Euler(" + valueAfterEquals + " / 57.2958)\nself.rotation_euler.rotate_axis('X', rotation_.x)\nself.rotation_euler.rotate_axis('Y', rotation_.y)\nself.rotation_euler.rotate_axis('Z', rotation_.z)");
+                            }
+                            else if (textBetweenTrsEulerAnglesAndEquals.Trim() == "-")
+                            {
+                                string valueAfterEquals = line.Substring(indexOfEquals + 1);
+                                line = line.Replace(trsEulerAnglesIndicator + textBetweenTrsEulerAnglesAndEquals + '=' + valueAfterEquals, "rotation_ = mathutils.Euler(" + valueAfterEquals + " / -57.2958)\nself.rotation_euler.rotate_axis('X', rotation_.x)\nself.rotation_euler.rotate_axis('Y', rotation_.y)\nself.rotation_euler.rotate_axis('Z', rotation_.z)");
+                            }
+                        }
+                    }
+                    lines[i] = line;
+                }
+                input = string.Join('\n', lines);
+            }
             return input;
         }
 
@@ -327,7 +369,7 @@ namespace CSharpToPython {
             var pythonAst = new CSharpToPythonConvert().Visit(rewritten);
             var convertedCode = PythonAstPrinter.PrintPythonAst(pythonAst);
             var extraImports = requiredImports is null ? "" : string.Join("\r\n", requiredImports.Select(i => "import " + i));
-            convertedCode = "import clr\r\n" + extraImports + "\r\n" + convertedCode;
+            convertedCode = extraImports + "\r\n" + convertedCode;
             if (pythonAst is PyAst.SuiteStatement suiteStmt) {
                 var pythonStatements = suiteStmt.Statements
                     .Where(s => !(s is PyAst.FromImportStatement || s is PyAst.ImportStatement)).ToList();
@@ -344,10 +386,44 @@ namespace CSharpToPython {
             if (Translator.instance.GetType().Name != "CSToPython")
             {
                 convertedCode = convertedCode.Replace("from", "from_");
-                foreach (string member in CSharpToPythonConvert.membersToAdd)
+                if (Translator.instance.GetType().Name == "UnityInBlender")
                 {
-                    convertedCode += member + '\n';
-                    Console.WriteLine("WOWOW" + member);
+                    string membersString = "";
+                    foreach (string member in CSharpToPythonConvert.membersToAdd)
+                    {
+                        membersString += member + '\n';
+                        Console.WriteLine("WOWOW" + member);
+                    }
+                    string[] lines = convertedCode.Split("\n");
+                    for (int i = 0; i < lines.Length; i ++)
+                    {
+                        string line = lines[i];
+                        int indexOfUpdateMethod = line.IndexOf("def Update(self)");
+                        if (indexOfUpdateMethod != -1)
+                        {
+                            string updateMethod = "";
+                            for (int i2 = i + 1; i2 < lines.Length; i2 ++)
+                            {
+                                string line2 = lines[i2];
+                                if (i2 == lines.Length - 1 || line2.Length <= indexOfUpdateMethod || !Char.IsWhiteSpace(line2[indexOfUpdateMethod + 1]))
+                                {
+                                    convertedCode = membersString + Translate(updateMethod.Trim());
+                                    break;
+                                }
+                                else
+                                    updateMethod += '\n' + line2;
+                            }
+                            break;
+                        }
+                    }
+                }
+                else
+                {
+                    foreach (string member in CSharpToPythonConvert.membersToAdd)
+                    {
+                        convertedCode += member + '\n';
+                        Console.WriteLine("WOWOW" + member);
+                    }
                 }
                 convertedCode = convertedCode.Replace("FFTransform", "FTransform");
                 Translator.pythonFileContents = convertedCode;
