@@ -335,6 +335,22 @@ namespace CSharpToPython {
                 {
                     string line = lines[i];
                     string vectorIndicator = "new Vector3(";
+                    int indexOfVectorIndicator = 0;
+                    while (indexOfVectorIndicator != -1)
+                    {
+                        indexOfVectorIndicator = line.IndexOf(vectorIndicator, indexOfVectorIndicator + 1);
+                        if (indexOfVectorIndicator != -1)
+                        {
+                            int indexOfRightParenthesis = line.IndexOfMatchingRightParenthesis(indexOfVectorIndicator + vectorIndicator.Length);
+                            if (indexOfRightParenthesis != -1)
+                            {
+                                Console.WriteLine("YAY");
+                                string vectorValue = line.SubstringStartEnd(indexOfVectorIndicator + vectorIndicator.Length, indexOfRightParenthesis);
+                                line = line.Remove(indexOfVectorIndicator, vectorIndicator.Length);
+                                line = line.Insert(indexOfVectorIndicator, "mathutils.Vector(" + vectorValue + ')');
+                            }
+                        }
+                    }
                     string trsEulerAnglesIndicator = "self.rotation_euler";
                     int indexOfTrsEulerAngles = 0;
                     while (indexOfTrsEulerAngles != -1)
@@ -399,10 +415,10 @@ namespace CSharpToPython {
                     int indexOfNewGameObjectIndicator = line.IndexOf(newGameObjectIndicator);
                     if (indexOfNewGameObjectIndicator != -1)
                     {
-                        string textBeforeNewGameObjectIndicator = line.Substring(0, newGameObjectIndicator);
+                        string textBeforeNewGameObjectIndicator = line.Substring(0, indexOfNewGameObjectIndicator);
                         if (!string.IsNullOrEmpty(textBeforeNewGameObjectIndicator))
                         {
-                            
+
                         }
                     }
                     lines[i] = line;
