@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Reflection;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using PyAst = IronPython.Compiler.Ast;
 using CSharpSyntaxKind = Microsoft.CodeAnalysis.CSharp.SyntaxKind;
@@ -196,7 +197,10 @@ namespace CSharpToPython {
         }
 
         public override PyAst.Node VisitIdentifierName(IdentifierNameSyntax node) {
-            return new PyAst.NameExpression(node.Identifier.Text);
+            string text = node.Identifier.Text;
+            if (Assembly.GetExecutingAssembly().GetType(text) == null)
+                text = "self." + text;
+            return new PyAst.NameExpression(text);
         }
         public override PyAst.Node VisitMemberAccessExpression(MemberAccessExpressionSyntax node) {
             return new PyAst.MemberExpression((PyAst.Expression)Visit(node.Expression), node.Name.Identifier.Text);
