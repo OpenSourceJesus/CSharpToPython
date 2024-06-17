@@ -334,84 +334,74 @@ namespace CSharpToPython {
                 for (int i = 0; i < lines.Length; i ++)
                 {
                     string line = lines[i];
-                    string vectorIndicator = "new Vector3(";
-                    int indexOfVectorIndicator = 0;
+                    string vectorIndicator = "Vector3(";
+                    int indexOfVectorIndicator = line.IndexOf(vectorIndicator);
                     while (indexOfVectorIndicator != -1)
                     {
-                        indexOfVectorIndicator = line.IndexOf(vectorIndicator, indexOfVectorIndicator + 1);
-                        if (indexOfVectorIndicator != -1)
+                        int indexOfRightParenthesis = line.IndexOfMatchingRightParenthesis(indexOfVectorIndicator + vectorIndicator.Length);
+                        if (indexOfRightParenthesis != -1)
                         {
-                            int indexOfRightParenthesis = line.IndexOfMatchingRightParenthesis(indexOfVectorIndicator + vectorIndicator.Length);
-                            if (indexOfRightParenthesis != -1)
-                            {
-                                Console.WriteLine("YAY");
-                                string vectorValue = line.SubstringStartEnd(indexOfVectorIndicator + vectorIndicator.Length, indexOfRightParenthesis);
-                                line = line.Remove(indexOfVectorIndicator, vectorIndicator.Length);
-                                line = line.Insert(indexOfVectorIndicator, "mathutils.Vector(" + vectorValue + ')');
-                            }
+                            string vectorValue = line.SubstringStartEnd(indexOfVectorIndicator + vectorIndicator.Length, indexOfRightParenthesis);
+                            line = line.Remove(indexOfVectorIndicator, vectorIndicator.Length + vectorValue.Length);
+                            line = line.Insert(indexOfVectorIndicator, "mathutils.Vector((" + vectorValue + ')');
                         }
+                        indexOfVectorIndicator = line.IndexOf(vectorIndicator, indexOfVectorIndicator + 1);
                     }
                     string trsEulerAnglesIndicator = "self.rotation_euler";
-                    int indexOfTrsEulerAngles = 0;
+                    int indexOfTrsEulerAngles = line.IndexOf(trsEulerAnglesIndicator);
                     while (indexOfTrsEulerAngles != -1)
                     {
-                        indexOfTrsEulerAngles = line.IndexOf(trsEulerAnglesIndicator, indexOfTrsEulerAngles + 1);
-                        if (indexOfTrsEulerAngles != -1)
+                        string statement = line.Substring(indexOfTrsEulerAngles);
+                        int indexOfEquals = line.IndexOf('=', indexOfTrsEulerAngles);
+                        if (indexOfEquals != -1)
                         {
-                            string statement = line.Substring(indexOfTrsEulerAngles);
-                            int indexOfEquals = line.IndexOf('=', indexOfTrsEulerAngles);
-                            if (indexOfEquals != -1)
+                            string textBetweenTrsEulerAnglesAndEquals = line.SubstringStartEnd(indexOfTrsEulerAngles + trsEulerAnglesIndicator.Length, indexOfEquals);
+                            if (textBetweenTrsEulerAnglesAndEquals == "" || string.IsNullOrWhiteSpace(textBetweenTrsEulerAnglesAndEquals))
                             {
-                                string textBetweenTrsEulerAnglesAndEquals = line.SubstringStartEnd(indexOfTrsEulerAngles + trsEulerAnglesIndicator.Length, indexOfEquals);
-                                if (textBetweenTrsEulerAnglesAndEquals == "" || string.IsNullOrWhiteSpace(textBetweenTrsEulerAnglesAndEquals))
-                                {
-                                    string facingText = line.Substring(indexOfEquals + 1);
-                                    line = line.Replace(statement, "self.rotation_euler = mathutils.Euler(" + facingText + ')');
-                                }
-                                else if (textBetweenTrsEulerAnglesAndEquals.Trim() == "+")
-                                {
-                                    string valueAfterEquals = line.Substring(indexOfEquals + 1);
-                                    line = line.Replace(trsEulerAnglesIndicator + textBetweenTrsEulerAnglesAndEquals + '=' + valueAfterEquals, "rotation_ = mathutils.Euler(" + valueAfterEquals + " / 57.2958)\nself.rotation_euler.rotate_axis('X', rotation_.x)\nself.rotation_euler.rotate_axis('Y', rotation_.y)\nself.rotation_euler.rotate_axis('Z', rotation_.z)");
-                                }
-                                else if (textBetweenTrsEulerAnglesAndEquals.Trim() == "-")
-                                {
-                                    string valueAfterEquals = line.Substring(indexOfEquals + 1);
-                                    line = line.Replace(trsEulerAnglesIndicator + textBetweenTrsEulerAnglesAndEquals + '=' + valueAfterEquals, "rotation_ = mathutils.Euler(" + valueAfterEquals + " / -57.2958)\nself.rotation_euler.rotate_axis('X', rotation_.x)\nself.rotation_euler.rotate_axis('Y', rotation_.y)\nself.rotation_euler.rotate_axis('Z', rotation_.z)");
-                                }
+                                string facingText = line.Substring(indexOfEquals + 1);
+                                line = line.Replace(statement, "self.rotation_euler = mathutils.Euler(" + facingText + ')');
+                            }
+                            else if (textBetweenTrsEulerAnglesAndEquals.Trim() == "+")
+                            {
+                                string valueAfterEquals = line.Substring(indexOfEquals + 1);
+                                line = line.Replace(trsEulerAnglesIndicator + textBetweenTrsEulerAnglesAndEquals + '=' + valueAfterEquals, "rotation_ = mathutils.Euler(" + valueAfterEquals + " / 57.2958)\nself.rotation_euler.rotate_axis('X', rotation_.x)\nself.rotation_euler.rotate_axis('Y', rotation_.y)\nself.rotation_euler.rotate_axis('Z', rotation_.z)");
+                            }
+                            else if (textBetweenTrsEulerAnglesAndEquals.Trim() == "-")
+                            {
+                                string valueAfterEquals = line.Substring(indexOfEquals + 1);
+                                line = line.Replace(trsEulerAnglesIndicator + textBetweenTrsEulerAnglesAndEquals + '=' + valueAfterEquals, "rotation_ = mathutils.Euler(" + valueAfterEquals + " / -57.2958)\nself.rotation_euler.rotate_axis('X', rotation_.x)\nself.rotation_euler.rotate_axis('Y', rotation_.y)\nself.rotation_euler.rotate_axis('Z', rotation_.z)");
                             }
                         }
+                        indexOfTrsEulerAngles = line.IndexOf(trsEulerAnglesIndicator, indexOfTrsEulerAngles + 1);
                     }
                     string trsPositionIndicator = "self.location";
-                    int indexOfTrsPosition = 0;
+                    int indexOfTrsPosition = line.IndexOf(trsPositionIndicator);
                     while (indexOfTrsPosition != -1)
                     {
-                        indexOfTrsPosition = line.IndexOf(trsPositionIndicator, indexOfTrsPosition + 1);
-                        if (indexOfTrsPosition != -1)
+                        string statement = line.Substring(indexOfTrsPosition);
+                        int indexOfEquals = line.IndexOf('=', indexOfTrsPosition);
+                        if (indexOfEquals != -1)
                         {
-                            string statement = line.Substring(indexOfTrsPosition);
-                            int indexOfEquals = line.IndexOf('=', indexOfTrsPosition);
-                            if (indexOfEquals != -1)
+                            string textBetweenTrsPositionAndEquals = line.SubstringStartEnd(indexOfTrsPosition + trsPositionIndicator.Length, indexOfEquals);
+                            if (textBetweenTrsPositionAndEquals == "" || string.IsNullOrWhiteSpace(textBetweenTrsPositionAndEquals))
                             {
-                                string textBetweenTrsPositionAndEquals = line.SubstringStartEnd(indexOfTrsPosition + trsPositionIndicator.Length, indexOfEquals);
-                                if (textBetweenTrsPositionAndEquals == "" || string.IsNullOrWhiteSpace(textBetweenTrsPositionAndEquals))
-                                {
-                                    string positionText = line.Substring(indexOfEquals + 1);
-                                    line = line.Replace(statement, "self.location = mathutils.Vector(" + positionText + ')');
-                                }
-                                else if (textBetweenTrsPositionAndEquals.Trim() == "+")
-                                {
-                                    string valueAfterEquals = line.Substring(indexOfEquals + 1);
-                                    line = line.Replace(trsPositionIndicator + textBetweenTrsPositionAndEquals + '=' + valueAfterEquals, "self.location += mathutils.Vector(" +  valueAfterEquals + ')');
-                                }
-                                else if (textBetweenTrsPositionAndEquals.Trim() == "-")
-                                {
-                                    string valueAfterEquals = line.Substring(indexOfEquals + 1);
-                                    line = line.Replace(trsPositionIndicator + textBetweenTrsPositionAndEquals + '=' + valueAfterEquals, "self.location -= mathutils.Vector(" +  valueAfterEquals + ')');
-                                }
+                                string positionText = line.Substring(indexOfEquals + 1);
+                                line = line.Replace(statement, "self.location = mathutils.Vector(" + positionText + ')');
+                            }
+                            else if (textBetweenTrsPositionAndEquals.Trim() == "+")
+                            {
+                                string valueAfterEquals = line.Substring(indexOfEquals + 1);
+                                line = line.Replace(trsPositionIndicator + textBetweenTrsPositionAndEquals + '=' + valueAfterEquals, "self.location += mathutils.Vector(" +  valueAfterEquals + ')');
+                            }
+                            else if (textBetweenTrsPositionAndEquals.Trim() == "-")
+                            {
+                                string valueAfterEquals = line.Substring(indexOfEquals + 1);
+                                line = line.Replace(trsPositionIndicator + textBetweenTrsPositionAndEquals + '=' + valueAfterEquals, "self.location -= mathutils.Vector(" +  valueAfterEquals + ')');
                             }
                         }
+                        indexOfTrsPosition = line.IndexOf(trsPositionIndicator, indexOfTrsPosition + 1);
                     }
-                    string newGameObjectIndicator = "new GameObject()";
+                    string newGameObjectIndicator = "GameObject()";
                     int indexOfNewGameObjectIndicator = line.IndexOf(newGameObjectIndicator);
                     if (indexOfNewGameObjectIndicator != -1)
                     {
