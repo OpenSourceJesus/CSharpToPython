@@ -20,6 +20,7 @@ namespace CSharpToPython {
         public static string memberToAddName;
         public static string memberToAddValueSetter;
         public static string memberToAddTypeSetter;
+        static string[] UNITY_IDENTIFIER_NAMES = [ "Vector2", "Vector3", "Time", "Quaternion", "MonoBehaviour", "Transform", "GameObject", "Component" ];
 
         public override PyAst.Node DefaultVisit(SyntaxNode node) {
             Console.WriteLine("WOW" + PythonAstPrinter.stringBuilder.ToString());
@@ -198,7 +199,7 @@ namespace CSharpToPython {
 
         public override PyAst.Node VisitIdentifierName(IdentifierNameSyntax node) {
             string text = node.Identifier.Text;
-            if (Assembly.GetExecutingAssembly().GetType(text) == null)
+            if (!UNITY_IDENTIFIER_NAMES.Contains(text) && Assembly.GetExecutingAssembly().GetType(text) == null)
                 text = "self." + text;
             return new PyAst.NameExpression(text);
         }
