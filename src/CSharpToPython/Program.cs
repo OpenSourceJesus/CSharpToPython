@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Linq;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using PyAst = IronPython.Compiler.Ast;
 
 namespace CSharpToPython {
@@ -334,7 +336,7 @@ namespace CSharpToPython {
                 for (int i = 0; i < lines.Length; i ++)
                 {
                     string line = lines[i];
-                    string vectorIndicator = "new Vector3(";
+                    string vectorIndicator = "Vector3(";
                     int indexOfVectorIndicator = 0;
                     while (indexOfVectorIndicator != -1)
                     {
@@ -344,10 +346,10 @@ namespace CSharpToPython {
                             int indexOfRightParenthesis = line.IndexOfMatchingRightParenthesis(indexOfVectorIndicator + vectorIndicator.Length);
                             if (indexOfRightParenthesis != -1)
                             {
-                                Console.WriteLine("YAY");
                                 string vectorValue = line.SubstringStartEnd(indexOfVectorIndicator + vectorIndicator.Length, indexOfRightParenthesis);
-                                line = line.Remove(indexOfVectorIndicator, vectorIndicator.Length);
-                                line = line.Insert(indexOfVectorIndicator, "mathutils.Vector(" + vectorValue + ')');
+                                SwapVectorYAndZ (vectorValue);
+                                line = line.Remove(indexOfVectorIndicator, vectorIndicator.Length + vectorValue.Length);
+                                line = line.Insert(indexOfVectorIndicator, "mathutils.Vector((" + vectorValue + ')');
                             }
                         }
                     }
@@ -411,7 +413,7 @@ namespace CSharpToPython {
                             }
                         }
                     }
-                    string newGameObjectIndicator = "new GameObject()";
+                    string newGameObjectIndicator = "GameObject()";
                     int indexOfNewGameObjectIndicator = line.IndexOf(newGameObjectIndicator);
                     if (indexOfNewGameObjectIndicator != -1)
                     {
@@ -453,45 +455,50 @@ namespace CSharpToPython {
             if (Translator.instance.GetType().Name != "CSToPython")
             {
                 convertedCode = convertedCode.Replace("from", "from_");
+                string membersString = "";
+                foreach (string member in CSharpToPythonConvert.membersToAdd)
+                {
+                    membersString += member + '\n';
+                    Console.WriteLine("WOWOW" + member);
+                }
                 if (Translator.instance.GetType().Name == "UnityInBlender")
                 {
-                    string membersString = "";
-                    foreach (string member in CSharpToPythonConvert.membersToAdd)
-                    {
-                        membersString += member + '\n';
-                        Console.WriteLine("WOWOW" + member);
-                    }
                     string[] lines = convertedCode.Split("\n");
+                    Console.WriteLine("Original:" + convertedCode);
+                    string methods = "";
                     for (int i = 0; i < lines.Length; i ++)
                     {
                         string line = lines[i];
-                        int indexOfUpdateMethod = line.IndexOf("def Update(self)");
-                        if (indexOfUpdateMethod != -1)
+                        int indexOfMethod = line.IndexOf("def ");
+                        if (indexOfMethod != -1 && !line.Substring(indexOfMethod).StartsWith("__init__"))
                         {
-                            string updateMethod = "";
-                            for (int i2 = i + 1; i2 < lines.Length; i2 ++)
+                            string method = "";
+                            while (i < lines.Length)
                             {
-                                string line2 = lines[i2];
-                                if (i2 == lines.Length - 1 || line2.Length <= indexOfUpdateMethod || !Char.IsWhiteSpace(line2[indexOfUpdateMethod + 1]))
+                                line = lines[i];
+                                if (i == lines.Length - 1 || line.Length <= indexOfMethod || !Char.IsWhiteSpace(line[indexOfMethod + 1]))
                                 {
-                                    convertedCode = membersString + Translate(updateMethod.Trim());
+                                    int spaceCountAtMethodStart = indexOfMethod;
+                                    string[] methodLines = method.Split('\n');
+                                    for (int i2 = 0; i2 < methodLines.Length; i2 ++)
+                                    {
+                                        string methodLine = methodLines[i2];
+                                        methodLine = methodLine.Substring(spaceCountAtMethodStart);
+                                        methodLines[i2] = methodLine;
+                                    }
+                                    methods += string.Join('\n', methodLines) + '\n';
                                     break;
                                 }
                                 else
-                                    updateMethod += '\n' + line2;
+                                    method += '\n' + line;
+                                i ++;
                             }
-                            break;
                         }
                     }
+                    convertedCode = membersString + methods + "Update()";
                 }
                 else
-                {
-                    foreach (string member in CSharpToPythonConvert.membersToAdd)
-                    {
-                        convertedCode += member + '\n';
-                        Console.WriteLine("WOWOW" + member);
-                    }
-                }
+                    convertedCode += membersString;
                 convertedCode = convertedCode.Replace("FFTransform", "FTransform");
                 Translator.pythonFileContents = convertedCode;
                 if (Translator.instance.GetType().Name == "UnityToBevy")
@@ -547,6 +554,20 @@ namespace CSharpToPython {
             var rewritten = MultiLineLambdaRewriter.RewriteMultiLineLambdas(csharpAst);
             var pythonAst = new CSharpToPythonConvert().Visit(rewritten);
             return PythonAstPrinter.PrintPythonAst(pythonAst);
+        }
+
+        static string SwapVectorYAndZ (string vectorValue)
+        {
+            SyntaxTree tree = CSharpSyntaxTree.ParseText(vectorValue);
+            List<SyntaxNode> nodes = new List<SyntaxNode>([ tree.GetRoot() ]);
+            while (nodes.Count > 0)
+            {
+                SyntaxNode node = nodes[0];
+                Console.WriteLine("" + node + "\nSyntax kind: " + node.Kind());
+                nodes.AddRange(node.ChildNodes());
+                nodes.RemoveAt(0);
+            }
+            return "";
         }
     }
 
