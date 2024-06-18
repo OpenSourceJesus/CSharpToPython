@@ -343,14 +343,10 @@ namespace CSharpToPython {
                         int indexOfRightParenthesis = line.IndexOfMatchingRightParenthesis(indexOfVectorIndicator + vectorIndicator.Length);
                         if (indexOfRightParenthesis != -1)
                         {
-                            int indexOfRightParenthesis = line.IndexOfMatchingRightParenthesis(indexOfVectorIndicator + vectorIndicator.Length);
-                            if (indexOfRightParenthesis != -1)
-                            {
-                                string vectorValue = line.SubstringStartEnd(indexOfVectorIndicator + vectorIndicator.Length, indexOfRightParenthesis);
-                                SwapVectorYAndZ (vectorValue);
-                                line = line.Remove(indexOfVectorIndicator, vectorIndicator.Length + vectorValue.Length);
-                                line = line.Insert(indexOfVectorIndicator, "mathutils.Vector((" + vectorValue + ')');
-                            }
+                            string vectorValue = line.SubstringStartEnd(indexOfVectorIndicator + vectorIndicator.Length, indexOfRightParenthesis);
+                            SwapVectorYAndZ (vectorValue);
+                            line = line.Remove(indexOfVectorIndicator, vectorIndicator.Length + vectorValue.Length);
+                            line = line.Insert(indexOfVectorIndicator, "mathutils.Vector((" + vectorValue + ')');
                         }
                         indexOfVectorIndicator = line.IndexOf(vectorIndicator, indexOfVectorIndicator + 1);
                     }
