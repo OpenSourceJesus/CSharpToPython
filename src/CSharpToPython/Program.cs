@@ -120,7 +120,7 @@ namespace CSharpToPython {
                         string clauseAfterKey = outputLine.SubstringStartEnd(indexOfPeriod + 1, indexOfEndOfClauseAfterKey);
                         if (clauseAfterKey == "isPressed")
                             outputLine = outputLine.Replace(CURRENT_KEYBOARD_INDICATOR + key + '.' + clauseAfterKey, "UGameplayStatics." + CONSTANT_INDICATOR + "GetPlayerController(GetWorld(), 0)." + POINTER_INDICATOR + "IsInputKeyDown(EKeys." + CONSTANT_INDICATOR + newKey + ")");
-                            indexOfCurrentKeyboard = outputLine.IndexOf(CURRENT_KEYBOARD_INDICATOR, indexOfCurrentKeyboard + CURRENT_KEYBOARD_INDICATOR.Length);
+                        indexOfCurrentKeyboard = outputLine.IndexOf(CURRENT_KEYBOARD_INDICATOR, indexOfCurrentKeyboard + CURRENT_KEYBOARD_INDICATOR.Length);
                     }
                     int indexOfCurrentMouse = outputLine.IndexOf(CURRENT_MOUSE_INDICATOR);
                     while (indexOfCurrentMouse != -1)
@@ -396,6 +396,18 @@ namespace CSharpToPython {
                         }
                         indexOfTrsPosition = line.IndexOf(trsPositionIndicator, indexOfTrsPosition + trsPositionIndicator.Length);
                     }
+                    int indexOfCurrentKeyboard = line.IndexOf(CURRENT_KEYBOARD_INDICATOR);
+                    while (indexOfCurrentKeyboard != -1)
+                    {
+                        int indexOfPeriod = line.IndexOf('.', indexOfCurrentKeyboard + CURRENT_KEYBOARD_INDICATOR.Length);
+                        string key = line.SubstringStartEnd(indexOfCurrentKeyboard + CURRENT_KEYBOARD_INDICATOR.Length, indexOfPeriod);
+                        string newKey = key.Replace("Key", "");
+                        int indexOfEndOfClauseAfterKey = line.IndexOfAny(new char[] { '.', ' ', ';', ')', ':' }, indexOfPeriod + 1);
+                        string clauseAfterKey = line.SubstringStartEnd(indexOfPeriod + 1, indexOfEndOfClauseAfterKey);
+                        if (clauseAfterKey == "isPressed")
+                            line = line.Replace(CURRENT_KEYBOARD_INDICATOR + key + '.' + clauseAfterKey, "\'" + newKey + "\' in keysPressed_");
+                        indexOfCurrentKeyboard = line.IndexOf(CURRENT_KEYBOARD_INDICATOR, indexOfCurrentKeyboard + CURRENT_KEYBOARD_INDICATOR.Length);
+                    }
                     int indexOfCurrentMouse = line.IndexOf(CURRENT_MOUSE_INDICATOR);
                     while (indexOfCurrentMouse != -1)
                     {
@@ -464,7 +476,7 @@ namespace CSharpToPython {
                 }
                 if (Translator.instance.GetType().Name == "UnityInBlender")
                 {
-                    globalVariablesString = "global mousePosition_, mouseButtonsPressed_, ";
+                    globalVariablesString = "global mousePosition_, mouseButtonsPressed_, keysPressed_, ";
                     int indexOfClassVariableIndicator = -CLASS_VARIABLE_INDICATOR.Length;
                     while (indexOfClassVariableIndicator != -1)
                     {
