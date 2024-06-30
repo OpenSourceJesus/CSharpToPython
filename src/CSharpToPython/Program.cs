@@ -75,99 +75,84 @@ namespace CSharpToPython {
                     //     }
                     // }
                     outputLine = Translate(outputLine);
-                    int indexOfInstantiate = 0;
+                    int indexOfInstantiate = outputLine.IndexOf(INSTANTIATE_INDICATOR);
                     while (indexOfInstantiate != -1)
                     {
+                        // string replaceWith = "Utils." + CONSTANT_INDICATOR + "SpawnActor(GetWorld(), ";
+                        string replaceWith = "SpawnActor(";
+                        int indexOfComma = outputLine.IndexOf(',', indexOfInstantiate);
+                        string argument1 = outputLine.SubstringStartEnd(indexOfInstantiate + INSTANTIATE_INDICATOR.Length, indexOfComma);
+                        replaceWith += argument1;
+                        int indexOfComma2 = outputLine.IndexOf(',', indexOfComma + 1);
+                        string argument2 = outputLine.SubstringStartEnd(indexOfComma + 1, indexOfComma2);
+                        replaceWith += ", " + argument2;
+                        int indexOfParenthesis = outputLine.IndexOfMatchingRightParenthesis(indexOfInstantiate + INSTANTIATE_INDICATOR.Length - 1);
+                        string argument3 = outputLine.SubstringStartEnd(indexOfComma2 + 1, indexOfParenthesis);
+                        replaceWith += ", " + argument3 + ')';
+                        outputLine = outputLine.Replace(outputLine.SubstringStartEnd(indexOfInstantiate, indexOfParenthesis), replaceWith);
                         indexOfInstantiate = outputLine.IndexOf(INSTANTIATE_INDICATOR, indexOfInstantiate + INSTANTIATE_INDICATOR.Length);
-                        if (indexOfInstantiate != -1)
-                        {
-                            // string replaceWith = "Utils." + CONSTANT_INDICATOR + "SpawnActor(GetWorld(), ";
-                            string replaceWith = "SpawnActor(";
-                            int indexOfComma = outputLine.IndexOf(',', indexOfInstantiate);
-                            string argument1 = outputLine.SubstringStartEnd(indexOfInstantiate + INSTANTIATE_INDICATOR.Length, indexOfComma);
-                            replaceWith += argument1;
-                            int indexOfComma2 = outputLine.IndexOf(',', indexOfComma + 1);
-                            string argument2 = outputLine.SubstringStartEnd(indexOfComma + 1, indexOfComma2);
-                            replaceWith += ", " + argument2;
-                            int indexOfParenthesis = outputLine.IndexOfMatchingRightParenthesis(indexOfInstantiate + INSTANTIATE_INDICATOR.Length - 1);
-                            string argument3 = outputLine.SubstringStartEnd(indexOfComma2 + 1, indexOfParenthesis);
-                            replaceWith += ", " + argument3 + ')';
-                            outputLine = outputLine.Replace(outputLine.SubstringStartEnd(indexOfInstantiate, indexOfParenthesis), replaceWith);
-                        }
                     }
                     string positionIndicator = "transform.position";
-                    int indexOfPosition = 0;
+                    int indexOfPosition = outputLine.IndexOf(positionIndicator);
                     while (indexOfPosition != -1)
                     {
-                        indexOfPosition = outputLine.IndexOf(positionIndicator, indexOfPosition + positionIndicator.Length);
-                        if (indexOfPosition != -1)
+                        int indexOfEquals = outputLine.IndexOf('=', indexOfPosition);
+                        if (indexOfEquals != -1)
                         {
-                            int indexOfEquals = outputLine.IndexOf('=', indexOfPosition);
-                            if (indexOfEquals != -1)
-                            {
-                                int indexofSemicolon = outputLine.IndexOf(';', indexOfEquals);
-                                string position = outputLine.SubstringStartEnd(indexOfEquals + 1, indexofSemicolon);
-                                outputLine = "TeleportTo(" + position + ", GetActorRotation(), true, true);";
-                            }
+                            int indexofSemicolon = outputLine.IndexOf(';', indexOfEquals);
+                            string position = outputLine.SubstringStartEnd(indexOfEquals + 1, indexofSemicolon);
+                            outputLine = "TeleportTo(" + position + ", GetActorRotation(), true, true);";
                         }
+                        indexOfPosition = outputLine.IndexOf(positionIndicator, indexOfPosition + positionIndicator.Length);
                     }
-                    int indexOfCurrentKeyboard = 0;
+                    int indexOfCurrentKeyboard = outputLine.IndexOf(CURRENT_KEYBOARD_INDICATOR);
                     while (indexOfCurrentKeyboard != -1)
                     {
-                        indexOfCurrentKeyboard = outputLine.IndexOf(CURRENT_KEYBOARD_INDICATOR);
-                        if (indexOfCurrentKeyboard != -1)
+                        int indexOfPeriod = outputLine.IndexOf('.', indexOfCurrentKeyboard + CURRENT_KEYBOARD_INDICATOR.Length);
+                        string key = outputLine.SubstringStartEnd(indexOfCurrentKeyboard + CURRENT_KEYBOARD_INDICATOR.Length, indexOfPeriod);
+                        string newKey = "";
+                        if (key.EndsWith("Key"))
                         {
-                            int indexOfPeriod = outputLine.IndexOf('.', indexOfCurrentKeyboard + CURRENT_KEYBOARD_INDICATOR.Length);
-                            string key = outputLine.SubstringStartEnd(indexOfCurrentKeyboard + CURRENT_KEYBOARD_INDICATOR.Length, indexOfPeriod);
-                            string newKey = "";
-                            if (key.EndsWith("Key"))
-                            {
-                                newKey = key.Replace("Key", "");
-                                newKey = newKey.ToUpper();
-                            }
-                            int indexOfEndOfClauseAfterKey = outputLine.IndexOfAny(new char[] { '.', ' ', ';', ')' }, indexOfPeriod + 1);
-                            string clauseAfterKey = outputLine.SubstringStartEnd(indexOfPeriod + 1, indexOfEndOfClauseAfterKey);
-                            if (clauseAfterKey == "isPressed")
-                                outputLine = outputLine.Replace(CURRENT_KEYBOARD_INDICATOR + key + '.' + clauseAfterKey, "UGameplayStatics." + CONSTANT_INDICATOR + "GetPlayerController(GetWorld(), 0)." + POINTER_INDICATOR + "IsInputKeyDown(EKeys." + CONSTANT_INDICATOR + newKey + ")");
+                            newKey = key.Replace("Key", "");
+                            newKey = newKey.ToUpper();
                         }
+                        int indexOfEndOfClauseAfterKey = outputLine.IndexOfAny(new char[] { '.', ' ', ';', ')' }, indexOfPeriod + 1);
+                        string clauseAfterKey = outputLine.SubstringStartEnd(indexOfPeriod + 1, indexOfEndOfClauseAfterKey);
+                        if (clauseAfterKey == "isPressed")
+                            outputLine = outputLine.Replace(CURRENT_KEYBOARD_INDICATOR + key + '.' + clauseAfterKey, "UGameplayStatics." + CONSTANT_INDICATOR + "GetPlayerController(GetWorld(), 0)." + POINTER_INDICATOR + "IsInputKeyDown(EKeys." + CONSTANT_INDICATOR + newKey + ")");
+                            indexOfCurrentKeyboard = outputLine.IndexOf(CURRENT_KEYBOARD_INDICATOR, indexOfCurrentKeyboard + CURRENT_KEYBOARD_INDICATOR.Length);
                     }
-                    int indexOfCurrentMouse = 0;
+                    int indexOfCurrentMouse = outputLine.IndexOf(CURRENT_MOUSE_INDICATOR);
                     while (indexOfCurrentMouse != -1)
                     {
-                        indexOfCurrentMouse = outputLine.IndexOf(CURRENT_MOUSE_INDICATOR, indexOfCurrentMouse + 1);
-                        if (indexOfCurrentMouse != -1)
+                        string command = outputLine.Substring(indexOfCurrentMouse + CURRENT_MOUSE_INDICATOR.Length);
+                        if (command.StartsWith("position.ReadValue()"))
+                            outputLine = outputLine.Replace(CURRENT_MOUSE_INDICATOR + "position.ReadValue()", "Utils." + CONSTANT_INDICATOR + "GetMousePosition(GetWorld())");
+                        else
                         {
-                            string command = outputLine.Substring(indexOfCurrentMouse + CURRENT_MOUSE_INDICATOR.Length);
-                            if (command.StartsWith("position.ReadValue()"))
-                                outputLine = outputLine.Replace(CURRENT_MOUSE_INDICATOR + "position.ReadValue()", "Utils." + CONSTANT_INDICATOR + "GetMousePosition(GetWorld())");
-                            else
-                            {
-                                int indexOfPeriod = outputLine.IndexOf('.', indexOfCurrentMouse + CURRENT_MOUSE_INDICATOR.Length);
-                                string button = outputLine.SubstringStartEnd(indexOfCurrentMouse + CURRENT_MOUSE_INDICATOR.Length, indexOfPeriod);
-                                string key = "";
-                                if (button == "leftButton")
-                                    key = "LeftMouseButton";
-                                else if (button == "rightButton")
-                                    key = "RightMouseButton";
-                                int indexOfEndOfClauseAfterButton = outputLine.IndexOfAny(new char[] { '.', ' ', ';', ')' }, indexOfPeriod + 1);
-                                string clauseAfterButton = outputLine.SubstringStartEnd(indexOfPeriod + 1, indexOfEndOfClauseAfterButton);
-                                if (clauseAfterButton == "isPressed")
-                                    outputLine = outputLine.Replace(CURRENT_MOUSE_INDICATOR + button + '.' + clauseAfterButton, "UGameplayStatics." + CONSTANT_INDICATOR + "GetPlayerController(GetWorld(), 0)." + POINTER_INDICATOR + "IsInputKeyDown(EKeys." + CONSTANT_INDICATOR + key + ")");
-                            }
+                            int indexOfPeriod = outputLine.IndexOf('.', indexOfCurrentMouse + CURRENT_MOUSE_INDICATOR.Length);
+                            string button = outputLine.SubstringStartEnd(indexOfCurrentMouse + CURRENT_MOUSE_INDICATOR.Length, indexOfPeriod);
+                            string key = "";
+                            if (button == "leftButton")
+                                key = "LeftMouseButton";
+                            else if (button == "rightButton")
+                                key = "RightMouseButton";
+                            int indexOfEndOfClauseAfterButton = outputLine.IndexOfAny(new char[] { '.', ' ', ';', ')' }, indexOfPeriod + 1);
+                            string clauseAfterButton = outputLine.SubstringStartEnd(indexOfPeriod + 1, indexOfEndOfClauseAfterButton);
+                            if (clauseAfterButton == "isPressed")
+                                outputLine = outputLine.Replace(CURRENT_MOUSE_INDICATOR + button + '.' + clauseAfterButton, "UGameplayStatics." + CONSTANT_INDICATOR + "GetPlayerController(GetWorld(), 0)." + POINTER_INDICATOR + "IsInputKeyDown(EKeys." + CONSTANT_INDICATOR + key + ")");
                         }
+                        indexOfCurrentMouse = outputLine.IndexOf(CURRENT_MOUSE_INDICATOR, indexOfCurrentMouse + CURRENT_MOUSE_INDICATOR.Length);
                     }
-                    int indexOfGameObjectFind = 0;
+                    int indexOfGameObjectFind = outputLine.IndexOf(GAME_OBJECT_FIND_INDICATOR);
                     while (indexOfGameObjectFind != -1)
                     {
+                        int indexOfRightParenthesis = outputLine.IndexOfMatchingRightParenthesis(indexOfGameObjectFind + GAME_OBJECT_FIND_INDICATOR.Length);
+                        string gameObjectFind = outputLine.SubstringStartEnd(indexOfGameObjectFind, indexOfRightParenthesis);
+                        Console.WriteLine("YAY" + gameObjectFind);
+                        string whatToFind = gameObjectFind.SubstringStartEnd(GAME_OBJECT_FIND_INDICATOR.Length, gameObjectFind.Length - 2);
+                        outputLine = outputLine.Replace(outputLine, "Utils." + CONSTANT_INDICATOR + "GetActor(" + whatToFind + ", GetWorld())");
                         indexOfGameObjectFind = outputLine.IndexOf(GAME_OBJECT_FIND_INDICATOR, indexOfGameObjectFind + GAME_OBJECT_FIND_INDICATOR.Length);
-                        if (indexOfGameObjectFind != -1)
-                        {
-                            int indexOfRightParenthesis = outputLine.IndexOfMatchingRightParenthesis(indexOfGameObjectFind + GAME_OBJECT_FIND_INDICATOR.Length);
-                            string gameObjectFind = outputLine.SubstringStartEnd(indexOfGameObjectFind, indexOfRightParenthesis);
-                            Console.WriteLine("YAY" + gameObjectFind);
-                            string whatToFind = gameObjectFind.SubstringStartEnd(GAME_OBJECT_FIND_INDICATOR.Length, gameObjectFind.Length - 2);
-                            outputLine = outputLine.Replace(outputLine, "Utils." + CONSTANT_INDICATOR + "GetActor(" + whatToFind + ", GetWorld())");
-                        }
                     }
                     foreach (string screenToWorldPointIndicator in SCREEN_TO_WORLD_POINT_INDICATORS)
                     {
@@ -175,56 +160,45 @@ namespace CSharpToPython {
                         if (screenToWorldPointIndicatorIndex != -1)
                             outputLine = outputLine.Replace(screenToWorldPointIndicator, "Utils." + CONSTANT_INDICATOR + "ScreenToWorldPoint(GetWorld(), ");
                     }
-                    int indexOfTrsUp = 0;
-                    if (indexOfTrsUp != -1)
+                    string trsUpIndicator = "transform.up";
+                    int indexOfTrsUp = outputLine.IndexOf(trsUpIndicator);
+                    while (indexOfTrsUp != -1)
                     {
-                        indexOfTrsUp = outputLine.IndexOf("transform.up", indexOfTrsUp + 1);
-                        if (indexOfTrsUp != -1)
-                        {
-                            int indexOfStatementEnd = outputLine.IndexOf(';', indexOfTrsUp);
-                            string statement = outputLine.SubstringStartEnd(indexOfTrsUp, indexOfStatementEnd);
-                            int indexOfEquals = outputLine.IndexOf('=', indexOfTrsUp);
-                            string facingText = outputLine.SubstringStartEnd(indexOfEquals + 1, indexOfStatementEnd);
-                            string rotatorText = "UKismetMathLibrary." + CONSTANT_INDICATOR + "MakeRotFromZ(" + facingText + ")";
-                            outputLine = outputLine.Replace(statement, "SetActorRotation(" + rotatorText + ", ETeleportType." + CONSTANT_INDICATOR + "TeleportPhysics);");
-                        }
+                        int indexOfStatementEnd = outputLine.IndexOf(';', indexOfTrsUp);
+                        string statement = outputLine.SubstringStartEnd(indexOfTrsUp, indexOfStatementEnd);
+                        int indexOfEquals = outputLine.IndexOf('=', indexOfTrsUp);
+                        string facingText = outputLine.SubstringStartEnd(indexOfEquals + 1, indexOfStatementEnd);
+                        string rotatorText = "UKismetMathLibrary." + CONSTANT_INDICATOR + "MakeRotFromZ(" + facingText + ")";
+                        outputLine = outputLine.Replace(statement, "SetActorRotation(" + rotatorText + ", ETeleportType." + CONSTANT_INDICATOR + "TeleportPhysics);");
+                        indexOfTrsUp = outputLine.IndexOf(trsUpIndicator, indexOfTrsUp + trsUpIndicator.Length);
                     }
                     string trsEulerAnglesIndicator = "transform.eulerAngles";
-                    int indexOfTrsEulerAngles = 0;
-                    if (indexOfTrsEulerAngles != -1)
+                    int indexOfTrsEulerAngles = outputLine.IndexOf(trsEulerAnglesIndicator);
+                    while (indexOfTrsEulerAngles != -1)
                     {
-                        indexOfTrsEulerAngles = outputLine.IndexOf(trsEulerAnglesIndicator, indexOfTrsEulerAngles + trsEulerAnglesIndicator.Length);
-                        if (indexOfTrsEulerAngles != -1)
+                        int indexOfStatementEnd = outputLine.IndexOf(';', indexOfTrsEulerAngles);
+                        string statement = outputLine.SubstringStartEnd(indexOfTrsEulerAngles, indexOfStatementEnd);
+                        int indexOfEquals = outputLine.IndexOf('=', indexOfTrsEulerAngles);
+                        if (indexOfEquals != -1)
                         {
-                            int indexOfStatementEnd = outputLine.IndexOf(';', indexOfTrsEulerAngles);
-                            string statement = outputLine.SubstringStartEnd(indexOfTrsEulerAngles, indexOfStatementEnd);
-                            int indexOfEquals = outputLine.IndexOf('=', indexOfTrsEulerAngles);
-                            if (indexOfEquals != -1)
+                            string textBetweenTrsEulerAnglesAndEquals = outputLine.SubstringStartEnd(indexOfTrsEulerAngles + trsEulerAnglesIndicator.Length, indexOfEquals);
+                            if (textBetweenTrsEulerAnglesAndEquals == "" || string.IsNullOrWhiteSpace(textBetweenTrsEulerAnglesAndEquals))
                             {
-                                string textBetweenTrsEulerAnglesAndEquals = outputLine.SubstringStartEnd(indexOfTrsEulerAngles + trsEulerAnglesIndicator.Length, indexOfEquals);
-                                if (textBetweenTrsEulerAnglesAndEquals == "" || string.IsNullOrWhiteSpace(textBetweenTrsEulerAnglesAndEquals))
-                                {
-                                    string facingText = outputLine.SubstringStartEnd(indexOfEquals + 1, indexOfStatementEnd);
-                                    string rotatorText = "FQuat." + CONSTANT_INDICATOR + "MakeFromEuler(" + facingText + ").Rotator()";
-                                    outputLine = outputLine.Replace(statement, "SetActorRotation(" + rotatorText + ", ETeleportType." + CONSTANT_INDICATOR + "TeleportPhysics);");
-                                }
-                                else if (textBetweenTrsEulerAnglesAndEquals.Trim() == "+")
-                                {
-                                    int indexOfSemicolon = outputLine.IndexOf(';', indexOfEquals);
-                                    string valueAfterEquals = outputLine.SubstringStartEnd(indexOfEquals + 1, indexOfSemicolon);
-                                    outputLine = outputLine.Replace(trsEulerAnglesIndicator + textBetweenTrsEulerAnglesAndEquals + '=' + valueAfterEquals, "AddActorWorldRotation(FRotator." + CONSTANT_INDICATOR + "MakeFromEuler(" + Translate(valueAfterEquals) + "))");
-                                }
-                                else if (textBetweenTrsEulerAnglesAndEquals.Trim() == "-")
-                                {
-                                    int indexOfSemicolon = outputLine.IndexOf(';', indexOfEquals);
-                                    string valueAfterEquals = outputLine.SubstringStartEnd(indexOfEquals + 1, indexOfSemicolon);
-                                    outputLine = outputLine.Replace(trsEulerAnglesIndicator + textBetweenTrsEulerAnglesAndEquals + '=' + valueAfterEquals, "AddActorWorldRotation(FRotator." + CONSTANT_INDICATOR + "MakeFromEuler(-" + Translate(valueAfterEquals) + "))");
-                                }
-                                else
-                                {
-                                    outputLine = outputLine.Remove(indexOfTrsEulerAngles, trsEulerAnglesIndicator.Length);
-                                    outputLine = outputLine.Insert(indexOfTrsEulerAngles, "GetActorRotation().Euler()");
-                                }
+                                string facingText = outputLine.SubstringStartEnd(indexOfEquals + 1, indexOfStatementEnd);
+                                string rotatorText = "FQuat." + CONSTANT_INDICATOR + "MakeFromEuler(" + facingText + ").Rotator()";
+                                outputLine = outputLine.Replace(statement, "SetActorRotation(" + rotatorText + ", ETeleportType." + CONSTANT_INDICATOR + "TeleportPhysics);");
+                            }
+                            else if (textBetweenTrsEulerAnglesAndEquals.Trim() == "+")
+                            {
+                                int indexOfSemicolon = outputLine.IndexOf(';', indexOfEquals);
+                                string valueAfterEquals = outputLine.SubstringStartEnd(indexOfEquals + 1, indexOfSemicolon);
+                                outputLine = outputLine.Replace(trsEulerAnglesIndicator + textBetweenTrsEulerAnglesAndEquals + '=' + valueAfterEquals, "AddActorWorldRotation(FRotator." + CONSTANT_INDICATOR + "MakeFromEuler(" + Translate(valueAfterEquals) + "))");
+                            }
+                            else if (textBetweenTrsEulerAnglesAndEquals.Trim() == "-")
+                            {
+                                int indexOfSemicolon = outputLine.IndexOf(';', indexOfEquals);
+                                string valueAfterEquals = outputLine.SubstringStartEnd(indexOfEquals + 1, indexOfSemicolon);
+                                outputLine = outputLine.Replace(trsEulerAnglesIndicator + textBetweenTrsEulerAnglesAndEquals + '=' + valueAfterEquals, "AddActorWorldRotation(FRotator." + CONSTANT_INDICATOR + "MakeFromEuler(-" + Translate(valueAfterEquals) + "))");
                             }
                             else
                             {
@@ -232,80 +206,75 @@ namespace CSharpToPython {
                                 outputLine = outputLine.Insert(indexOfTrsEulerAngles, "GetActorRotation().Euler()");
                             }
                         }
+                        else
+                        {
+                            outputLine = outputLine.Remove(indexOfTrsEulerAngles, trsEulerAnglesIndicator.Length);
+                            outputLine = outputLine.Insert(indexOfTrsEulerAngles, "GetActorRotation().Euler()");
+                        }
+                        indexOfTrsEulerAngles = outputLine.IndexOf(trsEulerAnglesIndicator, indexOfTrsEulerAngles + trsEulerAnglesIndicator.Length);
                     }
                     outputLine = outputLine.Replace("Transform", "FTransform");
                 }
                 else if (Translator.instance.GetType().Name == "UnityToBevy")
                 {
-                    int indexOfCurrentKeyboard = 0;
+                    int indexOfCurrentKeyboard = outputLine.IndexOf(CURRENT_KEYBOARD_INDICATOR);
                     while (indexOfCurrentKeyboard != -1)
                     {
-                        indexOfCurrentKeyboard = outputLine.IndexOf(CURRENT_KEYBOARD_INDICATOR);
-                        if (indexOfCurrentKeyboard != -1)
+                        int indexOfPeriod = outputLine.IndexOf('.', indexOfCurrentKeyboard + CURRENT_KEYBOARD_INDICATOR.Length);
+                        string key = outputLine.SubstringStartEnd(indexOfCurrentKeyboard + CURRENT_KEYBOARD_INDICATOR.Length, indexOfPeriod);
+                        string newKey = "";
+                        if (key.EndsWith("Key"))
                         {
-                            int indexOfPeriod = outputLine.IndexOf('.', indexOfCurrentKeyboard + CURRENT_KEYBOARD_INDICATOR.Length);
-                            string key = outputLine.SubstringStartEnd(indexOfCurrentKeyboard + CURRENT_KEYBOARD_INDICATOR.Length, indexOfPeriod);
-                            string newKey = "";
-                            if (key.EndsWith("Key"))
-                            {
-                                newKey = key.Replace("Key", "");
-                                newKey = "Key" + newKey.ToUpper();
-                            }
-                            int indexOfEndOfClauseAfterKey = outputLine.IndexOfAny(new char[] { '.', ' ', ';', ')' }, indexOfPeriod + 1);
-                            string clauseAfterKey = outputLine.SubstringStartEnd(indexOfPeriod + 1, indexOfEndOfClauseAfterKey);
-                            if (clauseAfterKey == "isPressed")
-                                outputLine = outputLine.Replace(CURRENT_KEYBOARD_INDICATOR + key + '.' + clauseAfterKey, "keys.pressed(KeyCode." + CONSTANT_INDICATOR + newKey + ")");
+                            newKey = key.Replace("Key", "");
+                            newKey = "Key" + newKey.ToUpper();
                         }
+                        int indexOfEndOfClauseAfterKey = outputLine.IndexOfAny(new char[] { '.', ' ', ';', ')' }, indexOfPeriod + 1);
+                        string clauseAfterKey = outputLine.SubstringStartEnd(indexOfPeriod + 1, indexOfEndOfClauseAfterKey);
+                        if (clauseAfterKey == "isPressed")
+                            outputLine = outputLine.Replace(CURRENT_KEYBOARD_INDICATOR + key + '.' + clauseAfterKey, "keys.pressed(KeyCode." + CONSTANT_INDICATOR + newKey + ")");
+                        indexOfCurrentKeyboard = outputLine.IndexOf(CURRENT_KEYBOARD_INDICATOR, indexOfCurrentKeyboard + CURRENT_KEYBOARD_INDICATOR.Length);
                     }
-                    int indexOfCurrentMouse = 0;
+                    int indexOfCurrentMouse = outputLine.IndexOf(CURRENT_MOUSE_INDICATOR);
                     while (indexOfCurrentMouse != -1)
                     {
-                        indexOfCurrentMouse = outputLine.IndexOf(CURRENT_MOUSE_INDICATOR);
-                        if (indexOfCurrentMouse != -1)
+                        string command = outputLine.Substring(indexOfCurrentMouse + CURRENT_MOUSE_INDICATOR.Length);
+                        if (command.StartsWith("position.ReadValue()"))
+                            outputLine = outputLine.Replace(CURRENT_MOUSE_INDICATOR + "position.ReadValue()", "cursorPoint");
+                        else
                         {
-                            string command = outputLine.Substring(indexOfCurrentMouse + CURRENT_MOUSE_INDICATOR.Length);
-                            if (command.StartsWith("position.ReadValue()"))
-                                outputLine = outputLine.Replace(CURRENT_MOUSE_INDICATOR + "position.ReadValue()", "cursorPoint");
-                            else
-                            {
-                                int indexOfPeriod = outputLine.IndexOf('.', indexOfCurrentMouse + CURRENT_MOUSE_INDICATOR.Length);
-                                string button = outputLine.SubstringStartEnd(indexOfCurrentMouse + CURRENT_MOUSE_INDICATOR.Length, indexOfPeriod);
-                                string newButton = "";
-                                if (button == "leftButton")
-                                    newButton = "Left";
-                                else if (button == "rightButton")
-                                    newButton = "Right";
-                                int indexOfEndOfClauseAfterButton = outputLine.IndexOfAny(new char[] { '.', ' ', ';', ')' }, indexOfPeriod + 1);
-                                string clauseAfterButton = outputLine.SubstringStartEnd(indexOfPeriod + 1, indexOfEndOfClauseAfterButton);
-                                if (clauseAfterButton == "isPressed")
-                                    outputLine = outputLine.Replace(CURRENT_MOUSE_INDICATOR + button + '.' + clauseAfterButton, "mouseButtons.pressed(MouseButton." + CONSTANT_INDICATOR + newButton + ")");
-                            }
+                            int indexOfPeriod = outputLine.IndexOf('.', indexOfCurrentMouse + CURRENT_MOUSE_INDICATOR.Length);
+                            string button = outputLine.SubstringStartEnd(indexOfCurrentMouse + CURRENT_MOUSE_INDICATOR.Length, indexOfPeriod);
+                            string newButton = "";
+                            if (button == "leftButton")
+                                newButton = "Left";
+                            else if (button == "rightButton")
+                                newButton = "Right";
+                            int indexOfEndOfClauseAfterButton = outputLine.IndexOfAny(new char[] { '.', ' ', ';', ')' }, indexOfPeriod + 1);
+                            string clauseAfterButton = outputLine.SubstringStartEnd(indexOfPeriod + 1, indexOfEndOfClauseAfterButton);
+                            if (clauseAfterButton == "isPressed")
+                                outputLine = outputLine.Replace(CURRENT_MOUSE_INDICATOR + button + '.' + clauseAfterButton, "mouseButtons.pressed(MouseButton." + CONSTANT_INDICATOR + newButton + ")");
                         }
+                        indexOfCurrentMouse = outputLine.IndexOf(CURRENT_MOUSE_INDICATOR, indexOfCurrentMouse + CURRENT_MOUSE_INDICATOR.Length);
                     }
-                    int indexOfDestroy = 0;
+                    string destroyIndicator = "Destroy(";
+                    int indexOfDestroy = outputLine.IndexOf(destroyIndicator);
                     while (indexOfDestroy != -1)
                     {
-                        string destroyIndicator = "Destroy(";
-                        indexOfDestroy = outputLine.IndexOf(destroyIndicator);
-                        if (indexOfDestroy != -1)
+                        int indexOfRightParenthesis = outputLine.IndexOfMatchingRightParenthesis(indexOfDestroy + destroyIndicator.Length);
+                        string whatToDestroy = outputLine.SubstringStartEnd(indexOfDestroy, indexOfRightParenthesis);
+                        if (whatToDestroy == "gameObject" || whatToDestroy == "GetComponent<GameObject>()")
                         {
-                            int indexOfRightParenthesis = outputLine.IndexOfMatchingRightParenthesis(indexOfDestroy + destroyIndicator.Length);
-                            string whatToDestroy = outputLine.SubstringStartEnd(indexOfDestroy, indexOfRightParenthesis);
-                            if (whatToDestroy == "gameObject" || whatToDestroy == "GetComponent<GameObject>()")
-                            {
-                                // outputLine = outputLine.Replace(destroyIndicator + whatToDestroy + ')', "commands.entity(sceneEntity).remove<");
-                            }
+                            // outputLine = outputLine.Replace(destroyIndicator + whatToDestroy + ')', "commands.entity(sceneEntity).remove<");
                         }
+                        indexOfDestroy = outputLine.IndexOf(destroyIndicator, indexOfDestroy + destroyIndicator.Length);
                     }
-                    foreach (string screenToWorldPointIndicator in SCREEN_TO_WORLD_POINT_INDICATORS)
+                    (int index, string whatWasFound) screenToWorldPointIndicatorFindResult = outputLine.IndexOfAny(SCREEN_TO_WORLD_POINT_INDICATORS);
+                    while (screenToWorldPointIndicatorFindResult.index != -1)
                     {
-                        int screenToWorldPointIndicatorIndex = outputLine.IndexOf(screenToWorldPointIndicator);
-                        if (screenToWorldPointIndicatorIndex != -1)
-                        {
-                            int indexOfRightParenthesis = outputLine.IndexOfMatchingRightParenthesis(screenToWorldPointIndicatorIndex + screenToWorldPointIndicator.Length);
-                            string screenPoint = outputLine.SubstringStartEnd(screenToWorldPointIndicatorIndex + screenToWorldPointIndicator.Length, indexOfRightParenthesis);
-                            outputLine = outputLine.Replace(screenToWorldPointIndicator + screenPoint + ')', "GetScreenToWorldPoint(" + screenPoint + ", screenToWorldPointEvent)");
-                        }
+                        int indexOfRightParenthesis = outputLine.IndexOfMatchingRightParenthesis(screenToWorldPointIndicatorFindResult.index + screenToWorldPointIndicatorFindResult.whatWasFound.Length);
+                        string screenPoint = outputLine.SubstringStartEnd(screenToWorldPointIndicatorFindResult.index + screenToWorldPointIndicatorFindResult.whatWasFound.Length, indexOfRightParenthesis);
+                        outputLine = outputLine.Replace(screenToWorldPointIndicatorFindResult.whatWasFound + screenPoint + ')', "GetScreenToWorldPoint(" + screenPoint + ", screenToWorldPointEvent)");
+                        screenToWorldPointIndicatorFindResult = outputLine.IndexOfAny(SCREEN_TO_WORLD_POINT_INDICATORS, screenToWorldPointIndicatorFindResult.index + screenToWorldPointIndicatorFindResult.whatWasFound.Length);
                     }
                 }
                 outputLine = outputLine.Replace(" : MonoBehaviour", ""); // TODO: Make this work with interfaces
@@ -360,7 +329,7 @@ namespace CSharpToPython {
                 {
                     string line = lines[i];
                     string vectorIndicator = "Vector3(";
-                    int indexOfVectorIndicator = 0;
+                    int indexOfVectorIndicator = indexOfVectorIndicator = line.IndexOf(vectorIndicator);
                     while (indexOfVectorIndicator != -1)
                     {
                         int indexOfRightParenthesis = line.IndexOfMatchingRightParenthesis(indexOfVectorIndicator + vectorIndicator.Length);
@@ -425,7 +394,25 @@ namespace CSharpToPython {
                                 line = line.Replace(trsPositionIndicator + textBetweenTrsPositionAndEquals + '=' + valueAfterEquals, "self.location -= mathutils.Vector(" +  valueAfterEquals + ')');
                             }
                         }
-                        indexOfTrsPosition = line.IndexOf(trsPositionIndicator, indexOfTrsPosition + 1);
+                        indexOfTrsPosition = line.IndexOf(trsPositionIndicator, indexOfTrsPosition + trsPositionIndicator.Length);
+                    }
+                    int indexOfCurrentMouse = line.IndexOf(CURRENT_MOUSE_INDICATOR);
+                    while (indexOfCurrentMouse != -1)
+                    {
+                        string command = line.Substring(indexOfCurrentMouse + CURRENT_MOUSE_INDICATOR.Length);
+                        if (command.StartsWith("position.ReadValue()"))
+                            line = line.Replace(CURRENT_MOUSE_INDICATOR + "position.ReadValue()", "mousePosition_");
+                        else
+                        {
+                            int indexOfPeriod = line.IndexOf('.', indexOfCurrentMouse + CURRENT_MOUSE_INDICATOR.Length);
+                            string button = line.SubstringStartEnd(indexOfCurrentMouse + CURRENT_MOUSE_INDICATOR.Length, indexOfPeriod);
+                            string newButton = button.Replace("Button", "");
+                            int indexOfEndOfClauseAfterButton = line.IndexOfAny(new char[] { '.', ' ', ';', ')', ':' }, indexOfPeriod + 1);
+                            string clauseAfterButton = line.SubstringStartEnd(indexOfPeriod + 1, indexOfEndOfClauseAfterButton);
+                            if (clauseAfterButton == "isPressed")
+                                line = line.Replace(CURRENT_MOUSE_INDICATOR + button + '.' + clauseAfterButton, '\'' + newButton + "\' in mouseButtonsPressed_");
+                        }
+                        indexOfCurrentMouse = line.IndexOf(CURRENT_MOUSE_INDICATOR, indexOfCurrentMouse + CURRENT_MOUSE_INDICATOR.Length);
                     }
                     string newGameObjectIndicator = "GameObject()";
                     int indexOfNewGameObjectIndicator = line.IndexOf(newGameObjectIndicator);
@@ -477,7 +464,7 @@ namespace CSharpToPython {
                 }
                 if (Translator.instance.GetType().Name == "UnityInBlender")
                 {
-                    globalVariablesString = "global ";
+                    globalVariablesString = "global mousePosition_, mouseButtonsPressed_, ";
                     int indexOfClassVariableIndicator = -CLASS_VARIABLE_INDICATOR.Length;
                     while (indexOfClassVariableIndicator != -1)
                     {
