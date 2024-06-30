@@ -344,6 +344,7 @@ namespace CSharpToPython {
             else if (Translator.instance.GetType().Name == "UnityInBlender")
             {
                 input = input.Replace("Time.deltaTime", "0.016666667");
+                input = input.Replace("Vector3.zero", "mathutils.Vector()");
                 input = input.Replace("Vector3.right", "mathutils.Vector((1, 0, 0))");
                 input = input.Replace("Vector3.left", "mathutils.Vector((-1, 0, 0))");
                 input = input.Replace("Vector3.up", "mathutils.Vector((0, 0, 1))");
