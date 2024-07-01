@@ -11,9 +11,9 @@ namespace CSharpToPython {
         private int IndentLevel;
         // public readonly System.Text.StringBuilder stringBuilder = new System.Text.StringBuilder();
         public static System.Text.StringBuilder stringBuilder = new System.Text.StringBuilder();
-        static Dictionary<string, string> typeFilePathsDict = new Dictionary<string, string>();
-        static Dictionary<string, string> variablesTypesDict = new Dictionary<string, string>();
-        const string CLASS_MEMBER_VARIABLE_INDICATOR = "#💠";
+        // static Dictionary<string, string> typeFilePathsDict = new Dictionary<string, string>();
+        // static Dictionary<string, string> variablesTypesDict = new Dictionary<string, string>();
+        const string CLASS_VARIABLE_INDICATOR = "#💠";
         // const string TYPE_AND_FILE_PATH_SEPERATOR = "🌰";
 
         public static string PrintPythonAst(PyAst.Node node) {
@@ -175,11 +175,11 @@ namespace CSharpToPython {
         }
         public string Visit(PyAst.MemberExpression node)
         {
-            if (node.Target is not PyAst.CallExpression && !variablesTypesDict.ContainsKey(Visit(node.Target) + "." + node.Name))
-            {
-                Console.WriteLine("WOW2" + Visit(node.Target) + "." + node.Name);
-                variablesTypesDict.Add(Visit(node.Target) + "." + node.Name, "" + Visit(node.Target));
-            }
+            // if (node.Target is not PyAst.CallExpression && !variablesTypesDict.ContainsKey(Visit(node.Target) + "." + node.Name))
+            // {
+            //     Console.WriteLine("WOW2" + Visit(node.Target) + "." + node.Name);
+            //     variablesTypesDict.Add(Visit(node.Target) + "." + node.Name, "" + Visit(node.Target));
+            // }
             return $"{Visit(node.Target)}.{node.Name}";
         }
         public string Visit(PyAst.NameExpression node)
@@ -260,7 +260,7 @@ namespace CSharpToPython {
                 if (Translator.instance.GetType().Name != "CSToPython")
                 {
                     foreach (PyAst.MemberExpression expression in node.Left)
-                        stringBuilder.Insert(0, CLASS_MEMBER_VARIABLE_INDICATOR + expression.Name + ": " + setTo + '\n');
+                        stringBuilder.Insert(0, CLASS_VARIABLE_INDICATOR + expression.Name + ": " + setTo + '\n');
                 }
             }
         }
