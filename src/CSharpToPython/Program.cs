@@ -254,7 +254,7 @@ namespace CSharpToPython {
                             if (clauseAfterButton == "isPressed")
                                 outputLine = outputLine.Replace(CURRENT_MOUSE_INDICATOR + button + '.' + clauseAfterButton, "mouseButtons.pressed(MouseButton." + CONSTANT_INDICATOR + newButton + ")");
                         }
-                        indexOfCurrentMouse = outputLine.IndexOf(CURRENT_MOUSE_INDICATOR, indexOfCurrentMouse + CURRENT_MOUSE_INDICATOR.Length);
+                        indexOfCurrentMouse = outputLine.IndexOf(CURRENT_MOUSE_INDICATOR, indexOfCurrentMouse + 1);
                     }
                     string destroyIndicator = "Destroy(";
                     int indexOfDestroy = outputLine.IndexOf(destroyIndicator);
