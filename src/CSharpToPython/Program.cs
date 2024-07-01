@@ -334,6 +334,7 @@ namespace CSharpToPython {
                 input = input.Replace("Vector3.down", "mathutils.Vector((0, 0, -1))");
                 input = input.Replace("Vector3.forward", "mathutils.Vector((0, 1, 0))");
                 input = input.Replace("Vector3.back", "mathutils.Vector((0, -1, 0))");
+                input = input.Replace("Vector3.one", "mathutils.Vector((1, 1, 1))");
                 input = input.Replace("transform.eulerAngles", "self.rotation_euler");
                 input = input.Replace("transform.position", "self.location");
                 int spaceCountBeforeInput = input.Length - input.TrimStart().Length;
@@ -444,7 +445,7 @@ namespace CSharpToPython {
                     int indexOfNormalizeIndicator = line.IndexOf(normalizeIndicator);
                     while (indexOfNormalizeIndicator != -1)
                     {
-                        int indexOfWhatToNormalize = line.LastIndexOfAny(new char[] { '.', ' ', ';', ':' }, indexOfNormalizeIndicator - 1);
+                        int indexOfWhatToNormalize = line.LastIndexOfAny(new char[] { '.', ' ', ';', ')', ':' }, indexOfNormalizeIndicator - 1);
                         if (indexOfWhatToNormalize != -1)
                             indexOfWhatToNormalize ++;
                         string whatToNormalize = line.SubstringStartEnd(indexOfWhatToNormalize, indexOfNormalizeIndicator);
@@ -459,6 +460,8 @@ namespace CSharpToPython {
                         }
                         indexOfNormalizeIndicator = line.IndexOf(normalizeIndicator, indexOfNormalizeIndicator + normalizeIndicator.Length);
                     }
+                    foreach (string screenToWorldPointIndicator in SCREEN_TO_WORLD_POINT_INDICATORS)
+                        line = line.Replace(screenToWorldPointIndicator, "ScreenToWorldPoint(");
                     string newGameObjectIndicator = "GameObject()";
                     int indexOfNewGameObjectIndicator = line.IndexOf(newGameObjectIndicator);
                     if (indexOfNewGameObjectIndicator != -1)
