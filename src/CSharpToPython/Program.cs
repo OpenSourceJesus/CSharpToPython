@@ -18,6 +18,7 @@ namespace CSharpToPython {
         const string INSTANTIATE_INDICATOR = "Instantiate(";
         const string GAME_OBJECT_FIND_INDICATOR = "GameObject.Find(";
         const string CLASS_VARIABLE_INDICATOR = "#💠";
+        const string CAST_INDICATOR = "clr.Convert(";
         // const string RESOURCES_INDICATOR = "Resources.";
 
         public static void Example() {
@@ -287,6 +288,7 @@ namespace CSharpToPython {
 
         static string Translate (string input)
         {
+            input = input.Replace("//", "#");
             if (Translator.instance.GetType().Name == "UnityToUnreal")
             {
                 input = input.Replace("Time.time", "UGameplayStatics." + CONSTANT_INDICATOR + "GetRealTimeSeconds(GetWorld())");
@@ -462,6 +464,18 @@ namespace CSharpToPython {
                     }
                     foreach (string screenToWorldPointIndicator in SCREEN_TO_WORLD_POINT_INDICATORS)
                         line = line.Replace(screenToWorldPointIndicator, "ScreenToWorldPoint(");
+                    int indexOfCastIndicator = line.IndexOf(CAST_INDICATOR);
+                    while (indexOfCastIndicator != -1)
+                    {
+                        int indexOfComma = line.IndexOf(',', indexOfCastIndicator + CAST_INDICATOR.Length);
+                        string whatToCast = line.SubstringStartEnd(indexOfCastIndicator + CAST_INDICATOR.Length, indexOfComma);
+                        int indexOfMatchingRightParenthesis = line.IndexOfMatchingRightParenthesis(indexOfCastIndicator + CAST_INDICATOR.Length);
+                        string csType = line.SubstringStartEnd(indexOfComma + 1, indexOfMatchingRightParenthesis);
+                        csType = csType.TrimStart();
+                        line = line.RemoveStartEnd(indexOfCastIndicator, indexOfMatchingRightParenthesis);
+                        line = line.Insert(indexOfCastIndicator, "Cast(" + whatToCast + ", '" + csType + "'");
+                        indexOfCastIndicator = line.IndexOf(CAST_INDICATOR, indexOfCastIndicator + CAST_INDICATOR.Length);
+                    }
                     string newGameObjectIndicator = "GameObject()";
                     int indexOfNewGameObjectIndicator = line.IndexOf(newGameObjectIndicator);
                     if (indexOfNewGameObjectIndicator != -1)
