@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -328,7 +328,11 @@ namespace CSharpToPython {
             }
             else if (Translator.instance.GetType().Name == "UnityInBlender")
             {
+                input = input.Replace("Time.time", "(time.perf_counter() - startTime_)");
                 input = input.Replace("Time.deltaTime", "0.016666667");
+                input = input.Replace("Mathf.Abs", "abs");
+                input = input.Replace("Mathf.Sin", "math.sin");
+                input = input.Replace("Mathf.Cos", "math.cos");
                 input = input.Replace("Vector3.zero", "mathutils.Vector()");
                 input = input.Replace("Vector3.right", "mathutils.Vector((1, 0, 0))");
                 input = input.Replace("Vector3.left", "mathutils.Vector((-1, 0, 0))");
@@ -339,6 +343,8 @@ namespace CSharpToPython {
                 input = input.Replace("Vector3.one", "mathutils.Vector((1, 1, 1))");
                 input = input.Replace("transform.eulerAngles", "self.rotation_euler");
                 input = input.Replace("transform.position", "self.location");
+                input = input.Replace("false", "False");
+                input = input.Replace("true", "True");
                 int spaceCountBeforeInput = input.Length - input.TrimStart().Length;
                 string spaceBeforeInput = input.Substring(0, spaceCountBeforeInput);
                 string[] lines = input.Split('\n');
@@ -462,6 +468,22 @@ namespace CSharpToPython {
                         }
                         indexOfNormalizeIndicator = line.IndexOf(normalizeIndicator, indexOfNormalizeIndicator + normalizeIndicator.Length);
                     }
+                    string scaleIndicator = "transform.localScale";
+                    int indexOfScaleIndicator = line.IndexOf(scaleIndicator);
+                    while (indexOfScaleIndicator != -1)
+                    {
+                        int indexOfEquals = line.IndexOf('=', indexOfScaleIndicator + scaleIndicator.Length);
+                        if (indexOfEquals != -1)
+                        {
+                            int indexOfEndOfScale = line.IndexOfAny(new char[] { '.', ' ', ';', ')', ':' }, indexOfEquals + 1);
+                            if (indexOfEndOfScale != -1)
+                            {
+                                string scale = line.SubstringStartEnd(indexOfEquals + 1, indexOfEndOfScale);
+                                line = line.Replace(line.SubstringStartEnd(indexOfScaleIndicator, indexOfEndOfScale), "self.scale = " + scale);
+                            }
+                        }
+                        indexOfScaleIndicator = line.IndexOf(scaleIndicator, indexOfScaleIndicator + scaleIndicator.Length);
+                    }
                     foreach (string screenToWorldPointIndicator in SCREEN_TO_WORLD_POINT_INDICATORS)
                         line = line.Replace(screenToWorldPointIndicator, "ScreenToWorldPoint(");
                     int indexOfCastIndicator = line.IndexOf(CAST_INDICATOR);
@@ -526,7 +548,7 @@ namespace CSharpToPython {
                 }
                 if (Translator.instance.GetType().Name == "UnityInBlender")
                 {
-                    globalVariablesString = "global mousePosition_, mouseButtonsPressed_, keysPressed_, ";
+                    globalVariablesString = "global mousePosition_, mouseButtonsPressed_, keysPressed_, startTime_";
                     int indexOfClassVariableIndicator = -CLASS_VARIABLE_INDICATOR.Length;
                     while (indexOfClassVariableIndicator != -1)
                     {
