@@ -162,16 +162,16 @@ namespace CSharpToPython {
                             outputLine = outputLine.Replace(screenToWorldPointIndicator, "Utils." + CONSTANT_INDICATOR + "ScreenToWorldPoint(GetWorld(), ");
                     }
                     string trsUpIndicator = "transform.up";
-                    int indexOfTrsUp = outputLine.IndexOf(trsUpIndicator);
-                    while (indexOfTrsUp != -1)
+                    int indexOfTrsUpIndicator = outputLine.IndexOf(trsUpIndicator);
+                    while (indexOfTrsUpIndicator != -1)
                     {
-                        int indexOfStatementEnd = outputLine.IndexOf(';', indexOfTrsUp);
-                        string statement = outputLine.SubstringStartEnd(indexOfTrsUp, indexOfStatementEnd);
-                        int indexOfEquals = outputLine.IndexOf('=', indexOfTrsUp);
+                        int indexOfStatementEnd = outputLine.IndexOf(';', indexOfTrsUpIndicator);
+                        string statement = outputLine.SubstringStartEnd(indexOfTrsUpIndicator, indexOfStatementEnd);
+                        int indexOfEquals = outputLine.IndexOf('=', indexOfTrsUpIndicator);
                         string facingText = outputLine.SubstringStartEnd(indexOfEquals + 1, indexOfStatementEnd);
                         string rotatorText = "UKismetMathLibrary." + CONSTANT_INDICATOR + "MakeRotFromZ(" + facingText + ")";
                         outputLine = outputLine.Replace(statement, "SetActorRotation(" + rotatorText + ", ETeleportType." + CONSTANT_INDICATOR + "TeleportPhysics);");
-                        indexOfTrsUp = outputLine.IndexOf(trsUpIndicator, indexOfTrsUp + trsUpIndicator.Length);
+                        indexOfTrsUpIndicator = outputLine.IndexOf(trsUpIndicator, indexOfTrsUpIndicator + trsUpIndicator.Length);
                     }
                     string trsEulerAnglesIndicator = "transform.eulerAngles";
                     int indexOfTrsEulerAngles = outputLine.IndexOf(trsEulerAnglesIndicator);
@@ -312,6 +312,7 @@ namespace CSharpToPython {
         static string Translate (string input)
         {
             input = input.Replace("//", "#");
+            input = input.Replace("Mathf.Rad2Deg", "57.2958f");
             if (Translator.instance.GetType().Name == "UnityToUnreal")
             {
                 input = input.Replace("Time.time", "UGameplayStatics." + CONSTANT_INDICATOR + "GetRealTimeSeconds(GetWorld())");
@@ -493,16 +494,21 @@ namespace CSharpToPython {
                         indexOfScaleIndicator = line.IndexOf(scaleIndicator, indexOfScaleIndicator + scaleIndicator.Length);
                     }
                     string trsUpIndicator = "transform.up";
-                    int indexOfTrsUp = line.IndexOf(trsUpIndicator);
-                    while (indexOfTrsUp != -1)
+                    int indexOfTrsUpIndicator = line.IndexOf(trsUpIndicator);
+                    while (indexOfTrsUpIndicator != -1)
                     {
-                        int indexOfStatementEnd = line.IndexOf(';', indexOfTrsUp);
-                        string statement = line.SubstringStartEnd(indexOfTrsUp, indexOfStatementEnd);
-                        int indexOfEquals = line.IndexOf('=', indexOfTrsUp + trsUpIndicator.Length);
-                        string facingText = line.SubstringStartEnd(indexOfEquals + 1, indexOfStatementEnd);
-                        string newStatement = "mathutils.Euler(math.radians(math.atan2(" + facingText + ".x, " + facingText + ".z), 'XYZ')";
-                        line = line.Replace(statement, newStatement);
-                        indexOfTrsUp = line.IndexOf(trsUpIndicator, indexOfTrsUp + trsUpIndicator.Length);
+                        string textBeforeStatement = line.Substring(0, indexOfTrsUpIndicator);
+                        string statement = line.Substring(indexOfTrsUpIndicator);
+                        int indexOfEquals = line.IndexOf('=', indexOfTrsUpIndicator + trsUpIndicator.Length);
+                        string facingText = line.Substring(indexOfEquals + 1);
+                        string textBetweenTrsUpAndFacingText = line.SubstringStartEnd(indexOfTrsUpIndicator + trsUpIndicator.Length, indexOfEquals + 1);
+                        textBetweenTrsUpAndFacingText = textBetweenTrsUpAndFacingText.Trim();
+                        if (textBetweenTrsUpAndFacingText == "=")
+                        {
+                            string newStatement = "self.rotation_euler = mathutils.Euler(mathutils.Vector((0, 0, math.atan2(" + facingText + ".z, " + facingText + ".x))))";
+                            line = line.Replace(statement, newStatement);
+                        }
+                        indexOfTrsUpIndicator = line.IndexOf(trsUpIndicator, indexOfTrsUpIndicator + trsUpIndicator.Length);
                     }
                     foreach (string screenToWorldPointIndicator in SCREEN_TO_WORLD_POINT_INDICATORS)
                         line = line.Replace(screenToWorldPointIndicator, "ScreenToWorldPoint(");
@@ -568,7 +574,7 @@ namespace CSharpToPython {
                 }
                 if (Translator.instance.GetType().Name == "UnityInBlender")
                 {
-                    globalVariablesString = "global mousePosition_, mouseButtonsPressed_, keysPressed_, startTime_";
+                    globalVariablesString = "global mousePosition_, mouseButtonsPressed_, keysPressed_, startTime_, ";
                     int indexOfClassVariableIndicator = -CLASS_VARIABLE_INDICATOR.Length;
                     while (indexOfClassVariableIndicator != -1)
                     {
@@ -711,12 +717,16 @@ namespace CSharpToPython {
             int indexOfVariable = csCode.IndexOf(variable);
             while (indexOfVariable != -1)
             {
-                int indexOfType = csCode.LastIndexOfAny(new char[] { ',', ';', ' ', '\t', '\n' }, indexOfVariable - 2);
-                if (indexOfType != -1)
-                    indexOfType ++;
-                string type = csCode.SubstringStartEnd(indexOfType, indexOfVariable);
-                if (type.IsAlphaNumeric())
-                    return type;
+                int indexOfExpectedEndOfVariable = csCode.IndexOfAny(new char[] { ',', ';', ' ', '\t', '\n', '.', '=' }, indexOfVariable + variable.Length);
+                if (indexOfExpectedEndOfVariable - indexOfVariable == variable.Length)
+                {
+                    int indexOfType = csCode.LastIndexOfAny(new char[] { ',', ';', ' ', '\t', '\n' }, indexOfVariable - 2);
+                    if (indexOfType != -1)
+                        indexOfType ++;
+                    string type = csCode.SubstringStartEnd(indexOfType, indexOfVariable);
+                    if (type.IsAlphaNumeric())
+                        return type;
+                }
                 indexOfVariable = csCode.IndexOf(variable, indexOfVariable + variable.Length);
             }
             throw new Exception("Couldn't get the type for '" + variable + "' in the code '" + csCode + "'");
