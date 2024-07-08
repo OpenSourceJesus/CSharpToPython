@@ -100,8 +100,8 @@ namespace CSharpToPython {
                         int indexOfEquals = outputLine.IndexOf('=', indexOfPosition);
                         if (indexOfEquals != -1)
                         {
-                            int indexofSemicolon = outputLine.IndexOf(';', indexOfEquals);
-                            string position = outputLine.SubstringStartEnd(indexOfEquals + 1, indexofSemicolon);
+                            int indexOfSemicolon = outputLine.IndexOf(';', indexOfEquals);
+                            string position = outputLine.SubstringStartEnd(indexOfEquals + 1, indexOfSemicolon);
                             outputLine = "TeleportTo(" + position + ", GetActorRotation(), true, true);";
                         }
                         indexOfPosition = outputLine.IndexOf(positionIndicator, indexOfPosition + positionIndicator.Length);
@@ -304,6 +304,15 @@ namespace CSharpToPython {
                     }
                     indexOfNormalizeIndicator = csharpCode.IndexOf(normalizeIndicator, indexOfNormalizeIndicator + normalizeIndicator.Length);
                 }
+                csharpCode = InsertCastForVariable(csharpCode, "Vector2");
+                csharpCode = InsertCastForVariable(csharpCode, "Vector3");
+                string transformRotateIndicator = "transform.Rotate(";
+                int indexOfTransformRotateIndicator = csharpCode.IndexOf(transformRotateIndicator);
+                while (indexOfTransformRotateIndicator != -1)
+                {
+
+                    indexOfTransformRotateIndicator = csharpCode.IndexOf(transformRotateIndicator, indexOfTransformRotateIndicator + transformRotateIndicator.Length);
+                }
             }
             var csharpAst = Microsoft.CodeAnalysis.CSharp.SyntaxFactory.ParseSyntaxTree(csharpCode).GetRoot();
             return ConvertAndRunCode(engine, csharpAst);
@@ -326,10 +335,11 @@ namespace CSharpToPython {
                 input = input.Replace("Vector3.up", "FVector." + CONSTANT_INDICATOR + "ZAxisVector");
                 input = input.Replace("Vector3.down", "-FVector." + CONSTANT_INDICATOR + "ZAxisVector");
                 input = input.Replace("Mathf.Atan2", "UKismetMathLibrary." + CONSTANT_INDICATOR + "Atan2");
-                input = input.Replace("transform.position", "GetActorLocation()");
-                input = input.Replace("transform.rotation", "GetActorRotation()");
-                input = input.Replace("transform.up", "GetActorRightVector()");
+                // input = input.Replace("transform.position", "GetActorLocation()");
+                // input = input.Replace("transform.rotation", "GetActorRotation()");
+                // input = input.Replace("transform.up", "GetActorRightVector()");
                 input = input.Replace("Vector3.zero", "FVector." + CONSTANT_INDICATOR + "ZeroVector");
+                input = input.Replace("Vector3.one", "FVector." + CONSTANT_INDICATOR + "OneVector");
                 input = input.Replace(".x", ".X");
                 input = input.Replace(".y", ".Z");
                 input = input.Replace(".z", ".Y");
@@ -730,6 +740,32 @@ namespace CSharpToPython {
                 indexOfVariable = csCode.IndexOf(variable, indexOfVariable + variable.Length);
             }
             throw new Exception("Couldn't get the type for '" + variable + "' in the code '" + csCode + "'");
+        }
+
+        static string InsertCastForVariable (string csCode, string type)
+        {
+            int indexOfType = csCode.IndexOf(type);
+            while (indexOfType != -1)
+            {
+                if (csCode[indexOfType + type.Length] == ' ')
+                {
+                    int indexOfEquals = csCode.IndexOf('=', indexOfType + type.Length);
+                    string potentialVariableName = csCode.SubstringStartEnd(indexOfType + type.Length, indexOfEquals);
+                    string potentialVariableNameTrimmed = potentialVariableName.Trim();
+                    string castIndicator = "Cast(";
+                    string castSuffix = ", \"" + type + "\")";
+                    int indexOfSemicolon = csCode.IndexOf(';', indexOfEquals + 1);
+                    if (!potentialVariableNameTrimmed.Contains(' '))
+                    {
+                        string variableValue = csCode.SubstringStartEnd(indexOfEquals + 1, indexOfSemicolon);
+                        csCode = csCode.Insert(indexOfEquals + 1, castIndicator);
+                        indexOfSemicolon = csCode.IndexOf(';', indexOfEquals + 1);
+                        csCode = csCode.Insert(indexOfSemicolon, castSuffix);
+                    }
+                    indexOfType = csCode.IndexOf(type, indexOfSemicolon + 1 + castSuffix.Length);
+                }
+            }
+            return csCode;
         }
     }
 
