@@ -92,18 +92,24 @@ namespace CSharpToPython {
                         outputLine = outputLine.Replace(outputLine.SubstringStartEnd(indexOfInstantiate, indexOfParenthesis), replaceWith);
                         indexOfInstantiate = outputLine.IndexOf(INSTANTIATE_INDICATOR, indexOfInstantiate + INSTANTIATE_INDICATOR.Length);
                     }
-                    string positionIndicator = "transform.position";
-                    int indexOfPosition = outputLine.IndexOf(positionIndicator);
-                    while (indexOfPosition != -1)
+                    string trsPositionIndicator = "transform.position";
+                    int indexOfTrsPositionIndicator = outputLine.IndexOf(trsPositionIndicator);
+                    while (indexOfTrsPositionIndicator != -1)
                     {
-                        int indexOfEquals = outputLine.IndexOf('=', indexOfPosition);
+                        int indexOfEquals = outputLine.IndexOf('=', indexOfTrsPositionIndicator);
                         if (indexOfEquals != -1)
                         {
                             int indexOfSemicolon = outputLine.IndexOf(';', indexOfEquals);
                             string position = outputLine.SubstringStartEnd(indexOfEquals + 1, indexOfSemicolon);
+                            string textBetweenTrsPoistionIndicatorAndValue = line.SubstringStartEnd(indexOfTrsPositionIndicator + trsPositionIndicator.Length, indexOfEquals + 1);
+                            textBetweenTrsPoistionIndicatorAndValue = textBetweenTrsPoistionIndicatorAndValue.Trim();
+                            if (textBetweenTrsPoistionIndicatorAndValue == "+=")
+                                position += " + GetActorLocation()";
+                            else if (textBetweenTrsPoistionIndicatorAndValue == "-=")
+                                position += " - GetActorLocation()";
                             outputLine = "TeleportTo(" + position + ", GetActorRotation(), true, true);";
                         }
-                        indexOfPosition = outputLine.IndexOf(positionIndicator, indexOfPosition + positionIndicator.Length);
+                        indexOfTrsPositionIndicator = outputLine.IndexOf(trsPositionIndicator, indexOfTrsPositionIndicator + trsPositionIndicator.Length);
                     }
                     int indexOfCurrentKeyboard = outputLine.IndexOf(CURRENT_KEYBOARD_INDICATOR);
                     while (indexOfCurrentKeyboard != -1)
@@ -168,13 +174,11 @@ namespace CSharpToPython {
                         string statement = outputLine.SubstringStartEnd(indexOfTrsUpIndicator, indexOfStatementEnd);
                         int indexOfEquals = outputLine.IndexOf('=', indexOfTrsUpIndicator);
                         string facingText = outputLine.SubstringStartEnd(indexOfEquals + 1, indexOfStatementEnd);
+                        string rotatorText = "UKismetMathLibrary." + CONSTANT_INDICATOR + "MakeRotFromZ(" + facingText + ")";
                         string textBetweenTrsUpAndFacingText = line.SubstringStartEnd(indexOfTrsUpIndicator + trsUpIndicator.Length, indexOfEquals + 1);
                         textBetweenTrsUpAndFacingText = textBetweenTrsUpAndFacingText.Trim();
                         if (textBetweenTrsUpAndFacingText == "=")
-                        {
-                            string rotatorText = "UKismetMathLibrary." + CONSTANT_INDICATOR + "MakeRotFromZ(" + facingText + ")";
                             outputLine = outputLine.Replace(statement, "SetActorRotation(" + rotatorText + ", ETeleportType." + CONSTANT_INDICATOR + "TeleportPhysics);");
-                        }
                         indexOfTrsUpIndicator = outputLine.IndexOf(trsUpIndicator, indexOfTrsUpIndicator + trsUpIndicator.Length);
                     }
                     string trsEulerAnglesIndicator = "transform.eulerAngles";
