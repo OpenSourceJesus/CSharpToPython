@@ -75,7 +75,6 @@ namespace CSharpToPython {
                             
                     //     }
                     // }
-                    outputLine = Translate(outputLine);
                     int indexOfInstantiate = outputLine.IndexOf(INSTANTIATE_INDICATOR);
                     while (indexOfInstantiate != -1)
                     {
@@ -169,8 +168,13 @@ namespace CSharpToPython {
                         string statement = outputLine.SubstringStartEnd(indexOfTrsUpIndicator, indexOfStatementEnd);
                         int indexOfEquals = outputLine.IndexOf('=', indexOfTrsUpIndicator);
                         string facingText = outputLine.SubstringStartEnd(indexOfEquals + 1, indexOfStatementEnd);
-                        string rotatorText = "UKismetMathLibrary." + CONSTANT_INDICATOR + "MakeRotFromZ(" + facingText + ")";
-                        outputLine = outputLine.Replace(statement, "SetActorRotation(" + rotatorText + ", ETeleportType." + CONSTANT_INDICATOR + "TeleportPhysics);");
+                        string textBetweenTrsUpAndFacingText = line.SubstringStartEnd(indexOfTrsUpIndicator + trsUpIndicator.Length, indexOfEquals + 1);
+                        textBetweenTrsUpAndFacingText = textBetweenTrsUpAndFacingText.Trim();
+                        if (textBetweenTrsUpAndFacingText == "=")
+                        {
+                            string rotatorText = "UKismetMathLibrary." + CONSTANT_INDICATOR + "MakeRotFromZ(" + facingText + ")";
+                            outputLine = outputLine.Replace(statement, "SetActorRotation(" + rotatorText + ", ETeleportType." + CONSTANT_INDICATOR + "TeleportPhysics);");
+                        }
                         indexOfTrsUpIndicator = outputLine.IndexOf(trsUpIndicator, indexOfTrsUpIndicator + trsUpIndicator.Length);
                     }
                     string trsEulerAnglesIndicator = "transform.eulerAngles";
@@ -215,6 +219,7 @@ namespace CSharpToPython {
                         indexOfTrsEulerAngles = outputLine.IndexOf(trsEulerAnglesIndicator, indexOfTrsEulerAngles + trsEulerAnglesIndicator.Length);
                     }
                     outputLine = outputLine.Replace("Transform", "FTransform");
+                    outputLine = Translate(outputLine);
                 }
                 else if (Translator.instance.GetType().Name == "UnityToBevy")
                 {
@@ -306,12 +311,12 @@ namespace CSharpToPython {
                 }
                 csharpCode = InsertCastForVariable(csharpCode, "Vector2");
                 csharpCode = InsertCastForVariable(csharpCode, "Vector3");
-                string transformRotateIndicator = "transform.Rotate(";
-                int indexOfTransformRotateIndicator = csharpCode.IndexOf(transformRotateIndicator);
-                while (indexOfTransformRotateIndicator != -1)
+                string trsRotateIndicator = "transform.Rotate(";
+                int indexOfTrsRotateeIndicator = csharpCode.IndexOf(trsRotateIndicator);
+                while (indexOfTrsRotateeIndicator != -1)
                 {
 
-                    indexOfTransformRotateIndicator = csharpCode.IndexOf(transformRotateIndicator, indexOfTransformRotateIndicator + transformRotateIndicator.Length);
+                    indexOfTrsRotateeIndicator = csharpCode.IndexOf(trsRotateIndicator, indexOfTrsRotateeIndicator + trsRotateIndicator.Length);
                 }
             }
             var csharpAst = Microsoft.CodeAnalysis.CSharp.SyntaxFactory.ParseSyntaxTree(csharpCode).GetRoot();
@@ -335,9 +340,9 @@ namespace CSharpToPython {
                 input = input.Replace("Vector3.up", "FVector." + CONSTANT_INDICATOR + "ZAxisVector");
                 input = input.Replace("Vector3.down", "-FVector." + CONSTANT_INDICATOR + "ZAxisVector");
                 input = input.Replace("Mathf.Atan2", "UKismetMathLibrary." + CONSTANT_INDICATOR + "Atan2");
-                // input = input.Replace("transform.position", "GetActorLocation()");
-                // input = input.Replace("transform.rotation", "GetActorRotation()");
-                // input = input.Replace("transform.up", "GetActorRightVector()");
+                input = input.Replace("transform.position", "GetActorLocation()");
+                input = input.Replace("transform.rotation", "GetActorRotation()");
+                input = input.Replace("transform.up", "GetActorRightVector()");
                 input = input.Replace("Vector3.zero", "FVector." + CONSTANT_INDICATOR + "ZeroVector");
                 input = input.Replace("Vector3.one", "FVector." + CONSTANT_INDICATOR + "OneVector");
                 input = input.Replace(".x", ".X");
