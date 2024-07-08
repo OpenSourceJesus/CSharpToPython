@@ -315,12 +315,30 @@ namespace CSharpToPython {
                 }
                 csharpCode = InsertCastForVariable(csharpCode, "Vector2");
                 csharpCode = InsertCastForVariable(csharpCode, "Vector3");
+                csharpCode = InsertCastForVariable(csharpCode, "Vector4");
                 string trsRotateIndicator = "transform.Rotate(";
-                int indexOfTrsRotateeIndicator = csharpCode.IndexOf(trsRotateIndicator);
-                while (indexOfTrsRotateeIndicator != -1)
+                int indexOfTrsRotateIndicator = csharpCode.IndexOf(trsRotateIndicator);
+                while (indexOfTrsRotateIndicator != -1)
                 {
-
-                    indexOfTrsRotateeIndicator = csharpCode.IndexOf(trsRotateIndicator, indexOfTrsRotateeIndicator + trsRotateIndicator.Length);
+                    int indexOfStatementEnd = csharpCode.IndexOfMatchingRightParenthesis(indexOfTrsRotateIndicator + trsRotateIndicator.Length);
+                    string statement = csharpCode.SubstringStartEnd(indexOfTrsRotateIndicator, indexOfStatementEnd + 1);
+                    int indexOfComma = csharpCode.LastIndexOf(',', indexOfStatementEnd - 1);
+                    if (indexOfComma != -1)
+                    {
+                        string spaceType = csharpCode.SubstringStartEnd(indexOfComma + 1, indexOfStatementEnd);
+                        spaceType = spaceType.Trim();
+                        string value = csharpCode.SubstringStartEnd(indexOfTrsRotateIndicator + trsRotateIndicator.Length, indexOfComma);
+                        if (spaceType == "Space.Self")
+                            csharpCode = csharpCode.Replace(statement, "AddActorLocalRotation(FRotator." + CONSTANT_INDICATOR + "MakeFromEuler(" + value + "))");
+                        else if (spaceType == "Space.World")
+                            csharpCode = csharpCode.Replace(statement, "AddActorWorldRotation(FRotator." + CONSTANT_INDICATOR + "MakeFromEuler(" + value + "))");
+                    }
+                    else
+                    {
+                        string value = csharpCode.SubstringStartEnd(indexOfTrsRotateIndicator + trsRotateIndicator.Length, indexOfStatementEnd);
+                        csharpCode = csharpCode.Replace(statement, "AddActorLocalRotation(FRotator." + CONSTANT_INDICATOR + "MakeFromEuler(" + value + "))");
+                    }
+                    indexOfTrsRotateIndicator = csharpCode.IndexOf(trsRotateIndicator, indexOfTrsRotateIndicator + trsRotateIndicator.Length);
                 }
             }
             var csharpAst = Microsoft.CodeAnalysis.CSharp.SyntaxFactory.ParseSyntaxTree(csharpCode).GetRoot();
