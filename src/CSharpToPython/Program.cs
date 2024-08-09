@@ -390,7 +390,7 @@ namespace CSharpToPython {
             else if (Translator.instance.GetType().Name == "UnityInBlender")
             {
                 input = input.Replace("Time.time", "(time.perf_counter() - startTime_)");
-                input = input.Replace("Time.deltaTime", "0.016666667");
+                input = input.Replace("Time.deltaTime", "(time.perf_counter() - previousTime_)");
                 input = input.Replace("Mathf.Abs", "abs");
                 input = input.Replace("Mathf.Sin", "math.sin");
                 input = input.Replace("Mathf.Cos", "math.cos");
@@ -772,9 +772,9 @@ namespace CSharpToPython {
         static string InsertCastForVariable (string csCode, string type)
         {
             int indexOfType = csCode.IndexOf(type);
-            while (indexOfType != -1)
+            if (csCode[indexOfType + type.Length] == ' ')
             {
-                if (csCode[indexOfType + type.Length] == ' ')
+                while (indexOfType != -1)
                 {
                     int indexOfEquals = csCode.IndexOf('=', indexOfType + type.Length);
                     string potentialVariableName = csCode.SubstringStartEnd(indexOfType + type.Length, indexOfEquals);
